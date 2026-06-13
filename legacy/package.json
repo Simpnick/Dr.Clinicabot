@@ -1,0 +1,27 @@
+{
+  "name": "clinica-chatbot",
+  "version": "1.0.0",
+  "description": "Chatbot clínico integrado ao Google Workspace (Calendar, Sheets, Drive) via API Oficial do WhatsApp Cloud",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test-whatsapp": "ts-node src/scripts/test-whatsapp.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.6.0",
+    "axios": "^1.6.8",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "googleapis": "^134.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

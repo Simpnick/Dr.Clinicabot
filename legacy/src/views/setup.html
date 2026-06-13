@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuração - Chatbot Clínico</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            zinc: {
+              750: '#202023',
+              850: '#18181b',
+              950: '#09090b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #09090b;
+    }
+    input::placeholder {
+      color: #52525b !important;
+    }
+    /* Subtle animations */
+    .fade-in {
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="text-zinc-100 font-sans min-h-screen py-12 px-4 md:px-8">
+
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- Cabeçalho Minimalista -->
+    <header class="border-b border-zinc-800 pb-8 mb-10">
+      <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+        <span>Painel de Configuração</span>
+        <span class="text-xs bg-emerald-950 text-emerald-400 font-semibold px-2 py-0.5 rounded border border-emerald-800/40">WhatsApp Oficial</span>
+      </h1>
+      <p class="text-zinc-400 mt-1 text-sm">
+        Gerencie as credenciais da clínica, banco de dados do Google Sheets e integração oficial do WhatsApp Cloud API.
+      </p>
+    </header>
+
+    <!-- Grid Principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      
+      <!-- Lado Esquerdo: Status e Configurações Webhook -->
+      <div class="lg:col-span-1 space-y-6">
+        
+        <!-- Status do Sistema -->
+        <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 space-y-6">
+          <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+            Status das Conexões
+          </h2>
+          
+          <div class="space-y-4">
+            <!-- Google Auth -->
+            <div class="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+              <div>
+                <h3 class="text-xs font-medium text-zinc-400">Google OAuth</h3>
+                <p class="text-sm font-semibold mt-0.5 text-zinc-200" id="google-status-text">Carregando...</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-880 text-zinc-400 border border-zinc-700" id="google-badge">Pendente</span>
+            </div>
+
+            <!-- Planilha Sheets -->
+            <div class="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+              <div>
+                <h3 class="text-xs font-medium text-zinc-400">Planilha Google Sheets</h3>
+                <p class="text-sm font-semibold mt-0.5 text-zinc-200" id="sheets-status-text">Carregando...</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-880 text-zinc-400 border border-zinc-700" id="sheets-badge">Pendente</span>
+            </div>
+
+            <!-- WhatsApp Connected -->
+            <div class="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+              <div>
+                <h3 class="text-xs font-medium text-zinc-400">API WhatsApp Cloud</h3>
+                <p class="text-sm font-semibold mt-0.5 text-zinc-200" id="wa-status-text">Carregando...</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-880 text-zinc-400 border border-zinc-700" id="wa-badge">Pendente</span>
+            </div>
+
+            <!-- WhatsApp Real como Paciente Toggle -->
+            <div class="flex items-center justify-between pt-1">
+              <div>
+                <h3 class="text-xs font-medium text-zinc-400">Celular do Médico como Paciente</h3>
+                <p class="text-[10px] text-zinc-550 leading-normal mt-0.5">Trata seu WhatsApp real como paciente para testar fluxos.</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="real-as-patient-toggle" class="sr-only peer" onchange="toggleRealAsPatient(this)">
+                <div class="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white peer-checked:after:border-white"></div>
+              </label>
+            </div>
+          </div>
+          
+          <!-- Botão Autenticação Google -->
+          <div class="pt-2" id="google-auth-btn-container">
+            <a href="/auth/google" target="_blank" class="w-full inline-flex justify-center items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 text-xs font-medium py-2.5 rounded transition duration-150">
+              <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.555 0-6.437-2.883-6.437-6.437 0-3.555 2.882-6.437 6.437-6.437 1.482 0 2.851.503 3.945 1.442l3.056-3.056C19.105 2.227 15.86 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c5.787 0 10.288-4.068 10.288-10.24 0-.668-.074-1.32-.2-1.955H12.24z"/></svg>
+              Autenticar Conta Google
+            </a>
+          </div>
+        </div>
+
+        <!-- Painel de Webhook -->
+        <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 space-y-4">
+          <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+            Dados para o Webhook
+          </h2>
+          
+          <div class="space-y-3 text-xs">
+            <div class="p-3 bg-zinc-955 rounded border border-zinc-800 space-y-1">
+              <span class="font-bold text-zinc-400 block">Webhook URL (Callback)</span>
+              <div class="flex items-center gap-2">
+                <code class="text-emerald-400 font-mono break-all select-all flex-1 text-[11px]" id="webhook-url">Carregando...</code>
+              </div>
+            </div>
+            <div class="p-3 bg-zinc-955 rounded border border-zinc-800 space-y-1">
+              <span class="font-bold text-zinc-400 block">Verify Token</span>
+              <div class="flex items-center gap-2">
+                <code class="text-emerald-400 font-mono break-all select-all flex-1 text-[11px]" id="webhook-verify-token">Carregando...</code>
+              </div>
+            </div>
+            <p class="text-[10px] text-zinc-500 leading-relaxed">
+              Insira estes valores no painel do <strong>Meta for Developers</strong> em Configuração do WhatsApp > Configuração. Lembre-se de assinar o campo de webhook <strong>messages</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Painel de Teste de Envio -->
+        <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 space-y-4">
+          <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+            Teste de Comunicação
+          </h2>
+          
+          <div class="flex flex-col items-center justify-center p-4 bg-zinc-955 rounded-lg border border-zinc-800 min-h-[140px]" id="test-container">
+            <p class="text-xs text-zinc-500 text-center" id="test-status-message">Preencha e salve os dados da API para poder enviar uma mensagem de teste oficial para o médico.</p>
+          </div>
+
+          <button onclick="enviarMensagemTeste()" id="btn-test-wa" class="w-full inline-flex justify-center items-center bg-zinc-850 hover:bg-zinc-750 text-zinc-200 border border-zinc-700 text-xs font-semibold py-2.5 rounded transition duration-150 disabled:opacity-40" disabled>
+            Enviar Mensagem Teste
+          </button>
+        </div>
+      </div>
+
+      <!-- Lado Direito: Configurações e Simulador -->
+      <div class="lg:col-span-3 grid grid-cols-1 xl:grid-cols-2 gap-8">
+        
+        <!-- Formulário de Configurações -->
+        <form id="config-form" onsubmit="salvarConfig(event)" class="bg-zinc-900 p-6 md:p-8 rounded-xl border border-zinc-800 flex flex-col justify-between space-y-6">
+          <div>
+            <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider border-b border-zinc-800 pb-3">
+              Dados de Configuração
+            </h2>
+
+            <div class="grid grid-cols-1 gap-4 mt-6">
+              
+              <!-- Modo Simulação Toggle -->
+              <div class="bg-zinc-950 p-4 rounded border border-zinc-800/80 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <label class="block text-xs font-semibold text-zinc-350">Modo Simulação (Sem API do Meta)</label>
+                    <p class="text-[10px] text-zinc-500 mt-0.5 leading-relaxed">Ignore credenciais da Meta e use o chat ao lado para interagir diretamente com a IA, Sheets e Calendar.</p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="WHATSAPP_SIMULATION_MODE" name="WHATSAPP_SIMULATION_MODE" value="true" class="sr-only peer">
+                    <div class="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white peer-checked:after:border-white"></div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Chave Gemini -->
+              <div class="space-y-1.5">
+                <div class="flex justify-between">
+                  <label class="block text-xs font-medium text-zinc-400">Chave API do Gemini (Google AI Studio)</label>
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[11px] text-zinc-500 hover:text-white underline">Obter Chave ↗</a>
+                </div>
+                <input type="password" id="GEMINI_API_KEY" name="GEMINI_API_KEY" placeholder="AIzaSy..." class="w-full bg-zinc-955 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-650 focus:outline-none text-zinc-200 transition duration-150">
+              </div>
+
+              <!-- ID da Planilha Google -->
+              <div class="space-y-1.5">
+                <div class="flex justify-between">
+                  <label class="block text-xs font-medium text-zinc-400">ID da Planilha Google Sheets</label>
+                  <a href="https://sheets.google.com" target="_blank" class="text-[11px] text-zinc-500 hover:text-white underline">Criar Planilha ↗</a>
+                </div>
+                <input type="text" id="GOOGLE_SPREADSHEET_ID" name="GOOGLE_SPREADSHEET_ID" placeholder="ex: 1Mp9QUrZfsjKLs3bkJF9jI-LEHflYzLgVkN2w85WEjRA" class="w-full bg-zinc-955 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-650 focus:outline-none text-zinc-200 transition duration-150">
+              </div>
+
+              <!-- Telefone do Médico -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-medium text-zinc-400">Telefone do Médico (Administrador)</label>
+                <input type="text" id="DOCTOR_PHONE" name="DOCTOR_PHONE" placeholder="ex: 5548999999999" class="w-full bg-zinc-955 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-650 focus:outline-none text-zinc-200 transition duration-150">
+              </div>
+
+              <!-- WhatsApp Phone Number ID -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-medium text-zinc-400">ID do Número de Telefone (Phone Number ID)</label>
+                <input type="text" id="WHATSAPP_PHONE_NUMBER_ID" name="WHATSAPP_PHONE_NUMBER_ID" placeholder="ex: 109847163884261" class="w-full bg-zinc-955 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-650 focus:outline-none text-zinc-200 transition duration-150">
+              </div>
+
+              <!-- WhatsApp Access Token -->
+              <div class="space-y-1.5">
+                <div class="flex justify-between">
+                  <label class="block text-xs font-medium text-zinc-400">Token de Acesso do Usuário (WhatsApp Access Token)</label>
+                  <a href="https://developers.facebook.com/apps" target="_blank" class="text-[11px] text-zinc-500 hover:text-white underline">Meta Console ↗</a>
+                </div>
+                <input type="password" id="WHATSAPP_ACCESS_TOKEN" name="WHATSAPP_ACCESS_TOKEN" placeholder="EAABw..." class="w-full bg-zinc-955 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-650 focus:outline-none text-zinc-200 transition duration-150">
+              </div>
+
+              <!-- WhatsApp Verify Token -->
+              <div class="space-y-1.5">
+                <label class="block text-xs font-medium text-zinc-400">Token de Verificação do Webhook (Verify Token)</label>
+                <input type="text" id="WHATSAPP_VERIFY_TOKEN" name="WHATSAPP_VERIFY_TOKEN" placeholder="ex: clinica_token_123" class="w-full bg-zinc-955 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-650 focus:outline-none text-zinc-200 transition duration-150">
+              </div>
+
+            </div>
+          </div>
+
+          <div class="space-y-4 pt-4 border-t border-zinc-800">
+            <!-- Mensagem de Sucesso/Erro -->
+            <div id="form-msg" class="hidden p-3 rounded text-xs font-medium"></div>
+
+            <div class="flex justify-end">
+              <button type="submit" class="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-bold py-2.5 px-6 rounded text-xs transition duration-150 w-full md:w-auto">
+                Salvar Configurações
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Simulador de Chat WhatsApp -->
+        <div class="bg-zinc-900 rounded-xl border border-zinc-800 flex flex-col h-[680px] overflow-hidden">
+          <!-- Cabeçalho do Chat -->
+          <div class="p-4 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <div class="w-10 h-10 rounded-full bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">
+                  AC
+                </div>
+                <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-zinc-900 animate-pulse" id="chat-status-dot"></div>
+              </div>
+              <div>
+                <h3 class="text-xs font-semibold text-zinc-200">Assistente Clínico</h3>
+                <span class="text-[10px] text-zinc-400 flex items-center gap-1">
+                  Status: <span id="chat-mode-badge" class="text-[9px] px-1.5 py-0.2 rounded border text-zinc-400">Verificando...</span>
+                </span>
+              </div>
+            </div>
+            
+            <button onclick="limparHistorico()" class="text-zinc-500 hover:text-zinc-300 transition p-1.5 rounded hover:bg-zinc-800" title="Limpar conversa">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
+
+          <!-- Seletor de Papel -->
+          <div class="px-4 py-2.5 bg-zinc-950/40 border-b border-zinc-800/60 flex items-center justify-between text-xs gap-4">
+            <span class="text-zinc-450 font-medium text-[10px] uppercase tracking-wider">Simular como:</span>
+            <div class="flex gap-2">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="simulation-role" value="patient" checked class="sr-only peer" onchange="alterarPapelSimulacao()">
+                <span class="px-2.5 py-1 rounded bg-zinc-950 text-zinc-550 border border-zinc-850 peer-checked:bg-emerald-950/40 peer-checked:text-emerald-400 peer-checked:border-emerald-800/80 transition text-[10px] font-semibold">
+                  👤 Paciente
+                </span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="simulation-role" value="doctor" class="sr-only peer" onchange="alterarPapelSimulacao()">
+                <span class="px-2.5 py-1 rounded bg-zinc-950 text-zinc-550 border border-zinc-850 peer-checked:bg-indigo-950/40 peer-checked:text-indigo-400 peer-checked:border-indigo-800/80 transition text-[10px] font-semibold">
+                  🩺 Médico
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Mensagens -->
+          <div id="chat-messages" class="flex-1 p-4 space-y-3.5 overflow-y-auto bg-zinc-950/30 scroll-smooth flex flex-col">
+            <!-- Welcome message -->
+            <div class="flex items-start gap-2.5 max-w-[85%] self-start fade-in">
+              <div class="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-400">AI</div>
+              <div class="bg-zinc-850 border border-zinc-800 p-3 rounded-xl rounded-tl-none text-xs text-zinc-200 leading-relaxed shadow-sm">
+                Olá! Eu sou a Assistente Clínica. Como posso lhe ajudar hoje?
+                <span class="block text-[8px] text-zinc-500 mt-1 text-right">Assistente</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Indicador de digitação -->
+          <div id="typing-indicator" class="hidden px-4 py-2.5 text-zinc-500 text-[10px] italic flex items-center gap-2 bg-zinc-950/10 border-t border-zinc-800/40">
+            <span class="flex gap-0.5">
+              <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-duration:1s]"></span>
+              <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-duration:1s] [animation-delay:0.2s]"></span>
+              <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-duration:1s] [animation-delay:0.4s]"></span>
+            </span>
+            <span class="text-zinc-400">Processando resposta com Gemini AI...</span>
+          </div>
+
+          <!-- Rodapé de Envio -->
+          <form onsubmit="enviarMensagemSimulacao(event)" class="p-3 border-t border-zinc-800 bg-zinc-950 flex gap-2">
+            <input type="text" id="sim-message-input" placeholder="Digite sua mensagem de teste..." class="flex-1 bg-zinc-900 border border-zinc-800 focus:border-zinc-650 rounded-lg px-3.5 py-2 text-xs focus:outline-none text-zinc-200 transition">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2.5 rounded-lg text-xs transition flex items-center justify-center aspect-square w-9">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="text-zinc-600 text-xs mt-12 border-t border-zinc-800 pt-6">
+      Painel Administrativo da Clínica. Conexões gerenciadas via Google API e Meta WhatsApp Business API Oficial.
+    </footer>
+
+  </div>
+
+  <script>
+    let inputsCarregados = false;
+    let currentRole = 'patient';
+
+    window.addEventListener('load', () => {
+      buscarStatusEConfig(true);
+      setInterval(() => buscarStatusEConfig(false), 5000);
+
+      // Event listener for simulation mode toggle
+      const simCheckbox = document.getElementById('WHATSAPP_SIMULATION_MODE');
+      if (simCheckbox) {
+        simCheckbox.addEventListener('change', () => {
+          updateInputsRequired();
+        });
+      }
+
+      // Higieniza ID da Planilha se for colada a URL inteira
+      const sheetInput = document.getElementById('GOOGLE_SPREADSHEET_ID');
+      if (sheetInput) {
+        const extrairId = (el) => {
+          const val = el.value.trim();
+          const match = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+          if (match && match[1]) {
+            el.value = match[1];
+          }
+        };
+        sheetInput.addEventListener('input', (e) => extrairId(e.target));
+        sheetInput.addEventListener('blur', (e) => extrairId(e.target));
+      }
+    });
+
+    function updateInputsRequired() {
+      const simCheckbox = document.getElementById('WHATSAPP_SIMULATION_MODE');
+      const isSim = simCheckbox && simCheckbox.checked;
+
+      const phoneIdInput = document.getElementById('WHATSAPP_PHONE_NUMBER_ID');
+      const accessTokenInput = document.getElementById('WHATSAPP_ACCESS_TOKEN');
+
+      if (isSim) {
+        if (phoneIdInput) phoneIdInput.placeholder = 'Opcional (Modo Simulação Ativo)';
+        if (accessTokenInput) accessTokenInput.placeholder = 'Opcional (Modo Simulação Ativo)';
+      } else {
+        if (phoneIdInput) phoneIdInput.placeholder = 'ex: 109847163884261';
+        if (accessTokenInput) accessTokenInput.placeholder = 'EAABw...';
+      }
+    }
+
+    async function buscarStatusEConfig(carregarInputs = false) {
+      try {
+        const response = await fetch('/api/config');
+        const data = await response.json();
+
+        if (carregarInputs) {
+          const config = data.config || {};
+          for (const key in config) {
+            const input = document.getElementById(key);
+            if (input) {
+              if (input.type === 'checkbox') {
+                input.checked = config[key] === 'true';
+              } else {
+                input.value = config[key];
+              }
+            }
+          }
+          inputsCarregados = true;
+          updateInputsRequired();
+        }
+
+        // Webhook URL e Verify Token dinâmicos
+        document.getElementById('webhook-url').innerText = `${window.location.origin}/webhook/whatsapp`;
+        document.getElementById('webhook-verify-token').innerText = data.config.WHATSAPP_VERIFY_TOKEN || 'Pendente de configuração';
+
+        // Atualizar Status do Google Auth
+        const gBadge = document.getElementById('google-badge');
+        const gText = document.getElementById('google-status-text');
+        if (data.status.googleAuthenticated) {
+          gBadge.innerText = 'Autenticado';
+          gBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-800';
+          gText.innerText = 'Conta Google vinculada';
+        } else {
+          gBadge.innerText = 'Pendente';
+          gBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-red-950/40 text-red-400 border border-red-800';
+          gText.innerText = 'Requer login';
+        }
+
+        // Atualizar Status da Planilha Sheets
+        const sBadge = document.getElementById('sheets-badge');
+        const sText = document.getElementById('sheets-status-text');
+        if (data.status.sheetsConnected) {
+          sBadge.innerText = 'Ativa';
+          sBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-800';
+          sText.innerText = 'Conectado e inicializado';
+        } else {
+          sBadge.innerText = 'Inativa';
+          sBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-red-950/40 text-red-400 border border-red-800';
+          sText.innerText = data.status.sheetsError ? 'Erro na conexão' : 'Sem ID configurado';
+        }
+
+        // Atualizar Status do WhatsApp Oficial
+        const wBadge = document.getElementById('wa-badge');
+        const wText = document.getElementById('wa-status-text');
+        const btnTest = document.getElementById('btn-test-wa');
+        const testContainer = document.getElementById('test-container');
+        const chatModeBadge = document.getElementById('chat-mode-badge');
+        const chatStatusDot = document.getElementById('chat-status-dot');
+
+        if (data.status.simulationActive) {
+          wBadge.innerText = 'Simulado';
+          wBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-purple-950/40 text-purple-400 border border-purple-800';
+          wText.innerText = 'Modo Simulação Ativo';
+          
+          btnTest.disabled = true;
+          testContainer.innerHTML = `
+            <div class="text-center space-y-2 fade-in">
+              <svg class="w-8 h-8 text-purple-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              <p class="text-purple-400 font-bold text-xs">Simulação Ativa</p>
+              <p class="text-[10px] text-zinc-550 leading-normal">O WhatsApp oficial está emulado. Use o painel de chat ao lado para interagir em tempo real.</p>
+            </div>
+          `;
+
+          if (chatModeBadge) {
+            chatModeBadge.innerText = 'Modo Simulação';
+            chatModeBadge.className = 'text-[9px] px-1.5 py-0.2 rounded border bg-purple-950/40 text-purple-400 border-purple-850';
+          }
+          if (chatStatusDot) {
+            chatStatusDot.className = 'absolute bottom-0 right-0 w-2.5 h-2.5 bg-purple-500 rounded-full border-2 border-zinc-900 animate-pulse';
+          }
+        } else if (data.status.whatsappConnected) {
+          wBadge.innerText = 'Conectado';
+          wBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-800';
+          wText.innerText = 'Chaves validadas na Meta';
+          
+          btnTest.disabled = false;
+          testContainer.innerHTML = `
+            <div class="text-center space-y-2 fade-in">
+              <svg class="w-8 h-8 text-emerald-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <p class="text-emerald-400 font-bold text-xs">Pronto para Testar</p>
+              <p class="text-[10px] text-zinc-450 leading-normal">A API respondeu com sucesso! Clique no botão abaixo para disparar um teste ao médico.</p>
+            </div>
+          `;
+
+          if (chatModeBadge) {
+            chatModeBadge.innerText = 'Produção (Meta)';
+            chatModeBadge.className = 'text-[9px] px-1.5 py-0.2 rounded border bg-emerald-950/40 text-emerald-400 border-emerald-850';
+          }
+          if (chatStatusDot) {
+            chatStatusDot.className = 'absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-zinc-900 animate-pulse';
+          }
+        } else {
+          wBadge.innerText = 'Pendente';
+          wBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-red-950/40 text-red-400 border border-red-800';
+          wText.innerText = 'Chaves incorretas ou ausentes';
+          
+          btnTest.disabled = true;
+          testContainer.innerHTML = `
+            <p class="text-xs text-zinc-500 text-center">Insira credenciais válidas e salve para testar o envio de mensagem.</p>
+          `;
+
+          if (chatModeBadge) {
+            chatModeBadge.innerText = 'Desconectado';
+            chatModeBadge.className = 'text-[9px] px-1.5 py-0.2 rounded border bg-zinc-800 text-zinc-400 border-zinc-700';
+          }
+          if (chatStatusDot) {
+            chatStatusDot.className = 'absolute bottom-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-zinc-900';
+          }
+        }
+
+        // Buscar status do toggle real como paciente
+        const toggleResponse = await fetch('/api/test/doctor-as-patient');
+        const toggleData = await toggleResponse.json();
+        const toggleEl = document.getElementById('real-as-patient-toggle');
+        if (toggleEl) {
+          toggleEl.checked = toggleData.active;
+        }
+
+      } catch (err) {
+        console.error('Erro ao buscar status:', err);
+      }
+    }
+
+    async function toggleRealAsPatient(checkbox) {
+      try {
+        const active = checkbox.checked;
+        const response = await fetch('/api/test/toggle-doctor-as-patient', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ active })
+        });
+        const data = await response.json();
+        console.log('[Role Toggle] Status atualizado no backend:', data.active);
+      } catch (err) {
+        console.error('Erro ao atualizar toggle:', err);
+        checkbox.checked = !checkbox.checked; // Reverte se falhar
+      }
+    }
+
+    async function salvarConfig(event) {
+      event.preventDefault();
+      const form = document.getElementById('config-form');
+      const formData = new FormData(form);
+      const payload = {};
+      
+      formData.forEach((value, key) => {
+        payload[key] = value;
+      });
+
+      // Trata especificamente o checkbox de simulação
+      const simCheckbox = document.getElementById('WHATSAPP_SIMULATION_MODE');
+      if (simCheckbox) {
+        payload['WHATSAPP_SIMULATION_MODE'] = simCheckbox.checked ? 'true' : 'false';
+      }
+
+      const msgDiv = document.getElementById('form-msg');
+      msgDiv.className = 'p-3 rounded text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700';
+      msgDiv.innerText = 'Gravando dados...';
+      msgDiv.classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          msgDiv.className = 'p-3 rounded text-xs font-medium bg-zinc-800 text-emerald-400 border border-emerald-800/40';
+          msgDiv.innerText = 'Configurações gravadas com sucesso no arquivo .env!';
+          buscarStatusEConfig(true);
+        } else {
+          msgDiv.className = 'p-3 rounded text-xs font-medium bg-red-955/40 text-red-400 border border-red-800';
+          msgDiv.innerText = `Erro ao salvar: ${data.error}`;
+        }
+      } catch (err) {
+        msgDiv.className = 'p-3 rounded text-xs font-medium bg-red-955/40 text-red-400 border border-red-800';
+        msgDiv.innerText = `Erro de conexão: ${err.message}`;
+      }
+    }
+
+    async function enviarMensagemTeste() {
+      const btnTest = document.getElementById('btn-test-wa');
+      const testContainer = document.getElementById('test-container');
+      
+      btnTest.disabled = true;
+      btnTest.innerText = 'Enviando...';
+      testContainer.innerHTML = `
+        <div class="flex flex-col items-center justify-center space-y-2 fade-in">
+          <svg class="animate-spin h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span class="text-xs text-zinc-550">Disparando WhatsApp oficial...</span>
+        </div>
+      `;
+
+      try {
+        const response = await fetch('/api/test-whatsapp', {
+          method: 'POST'
+        });
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          testContainer.innerHTML = `
+            <div class="text-center space-y-2 fade-in">
+              <svg class="w-8 h-8 text-emerald-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              <p class="text-emerald-400 font-bold text-xs">Sucesso!</p>
+              <p class="text-[10px] text-zinc-550">Confirme se o médico recebeu a mensagem de teste em seu celular.</p>
+            </div>
+          `;
+          btnTest.innerText = 'Reenviar Teste';
+          btnTest.disabled = false;
+        } else {
+          testContainer.innerHTML = `
+            <div class="text-center space-y-1.5 fade-in">
+              <p class="text-xs text-red-400 font-bold">Falha no Envio</p>
+              <p class="text-[9px] text-zinc-500 leading-normal break-all">${data.error || 'Erro desconhecido'}</p>
+            </div>
+          `;
+          btnTest.innerText = 'Tentar Novamente';
+          btnTest.disabled = false;
+        }
+      } catch (err) {
+        testContainer.innerHTML = `
+          <p class="text-xs text-red-455 text-center font-semibold">Erro: ${err.message}</p>
+        `;
+        btnTest.innerText = 'Tentar Novamente';
+        btnTest.disabled = false;
+      }
+    }
+
+    // --- FUNÇÕES DO SIMULADOR DE CHAT WHATSAPP ---
+
+    function alterarPapelSimulacao() {
+      const roles = document.getElementsByName('simulation-role');
+      for (const role of roles) {
+        if (role.checked) {
+          currentRole = role.value;
+          break;
+        }
+      }
+      appendSystemMessage(`Modo de envio alterado para: ${currentRole === 'patient' ? '👤 Paciente' : '🩺 Médico (Administrador)'}`);
+    }
+
+    function limparHistorico() {
+      const messagesDiv = document.getElementById('chat-messages');
+      messagesDiv.innerHTML = `
+        <div class="flex items-start gap-2.5 max-w-[85%] self-start fade-in">
+          <div class="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-400">AI</div>
+          <div class="bg-zinc-850 border border-zinc-800 p-3 rounded-xl rounded-tl-none text-xs text-zinc-200 leading-relaxed shadow-sm">
+            Histórico limpo. Como posso lhe ajudar agora?
+            <span class="block text-[8px] text-zinc-500 mt-1 text-right">Assistente</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function appendSystemMessage(text) {
+      const messagesDiv = document.getElementById('chat-messages');
+      const sysDiv = document.createElement('div');
+      sysDiv.className = 'text-[9px] text-zinc-500 text-center my-2 select-none uppercase tracking-wider font-semibold';
+      sysDiv.innerText = `[${text}]`;
+      messagesDiv.appendChild(sysDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function appendBubble(sender, text, isSelf) {
+      const messagesDiv = document.getElementById('chat-messages');
+      const outerDiv = document.createElement('div');
+      
+      if (isSelf) {
+        outerDiv.className = 'flex items-start gap-2.5 max-w-[85%] self-end flex-row-reverse fade-in';
+      } else {
+        outerDiv.className = 'flex items-start gap-2.5 max-w-[85%] self-start fade-in';
+      }
+
+      const avatar = document.createElement('div');
+      if (isSelf) {
+        avatar.className = `w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${currentRole === 'doctor' ? 'bg-indigo-650' : 'bg-emerald-650'}`;
+        avatar.innerText = currentRole === 'doctor' ? 'MD' : 'PA';
+      } else {
+        avatar.className = 'w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-zinc-400';
+        avatar.innerText = 'AI';
+      }
+
+      const bubble = document.createElement('div');
+      if (isSelf) {
+        bubble.className = `${currentRole === 'doctor' ? 'bg-indigo-950/60 border border-indigo-900/50' : 'bg-emerald-950/60 border border-emerald-900/50'} p-3 rounded-xl rounded-tr-none text-xs text-zinc-200 leading-relaxed shadow-sm`;
+      } else {
+        bubble.className = 'bg-zinc-850 border border-zinc-800 p-3 rounded-xl rounded-tl-none text-xs text-zinc-200 leading-relaxed shadow-sm';
+      }
+
+      // Convert line breaks to HTML tags safely
+      const textContainer = document.createElement('p');
+      textContainer.style.whiteSpace = 'pre-wrap';
+      textContainer.innerText = text;
+      bubble.appendChild(textContainer);
+
+      const timestamp = document.createElement('span');
+      timestamp.className = 'block text-[8px] text-zinc-500 mt-1 text-right';
+      timestamp.innerText = isSelf ? (currentRole === 'doctor' ? 'Você (Médico)' : 'Você (Paciente)') : 'Assistente';
+      bubble.appendChild(timestamp);
+
+      outerDiv.appendChild(avatar);
+      outerDiv.appendChild(bubble);
+      messagesDiv.appendChild(outerDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    async function enviarMensagemSimulacao(event) {
+      event.preventDefault();
+      const input = document.getElementById('sim-message-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      // Adiciona o texto digitado ao chat
+      appendBubble(currentRole === 'doctor' ? 'doctor' : 'patient', text, true);
+      input.value = '';
+
+      // Mostra digitando
+      const indicator = document.getElementById('typing-indicator');
+      if (indicator) indicator.classList.remove('hidden');
+
+      const messagesDiv = document.getElementById('chat-messages');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+      try {
+        // Encontra o telefone configurado do médico ou usa um fixo para o paciente
+        const docPhoneInput = document.getElementById('DOCTOR_PHONE');
+        const doctorPhone = docPhoneInput ? docPhoneInput.value.trim() : '';
+        const phone = currentRole === 'doctor' ? (doctorPhone || '5548996633846') : '5548999991234';
+
+        const response = await fetch('/api/simulate-incoming', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ phone, text })
+        });
+
+        const data = await response.json();
+
+        // Esconde digitando
+        if (indicator) indicator.classList.add('hidden');
+
+        if (response.ok && data.success) {
+          appendBubble('assistant', data.response, false);
+        } else {
+          appendSystemMessage(`Erro na Simulação: ${data.error || 'Erro desconhecido'}`);
+        }
+      } catch (err) {
+        if (indicator) indicator.classList.add('hidden');
+        appendSystemMessage(`Erro de conexão: ${err.message}`);
+      }
+    }
+  </script>
+</body>
+</html>
+

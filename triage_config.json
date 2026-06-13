@@ -1,0 +1,92 @@
+{
+  "welcomeMessage": "Olá! Seja bem-vindo à *Clínica Médica do Dr. Carlos Tonelli*.\n\nComo posso ajudar você hoje?",
+  "faqs": "REGRAS DA CLÍNICA E INFORMAÇÕES DE ATENDIMENTO:\n\n1. ATENDIMENTO E HORÁRIOS:\nO Dr. Carlos Tonelli atende de segunda a quinta-feira. O atendimento funciona das 13h30 às 20h, variando conforme a grade de horários específica de cada convênio e atendimentos particulares. Não há atendimentos às sextas-feiras, sábados ou domingos.\n\n2. CONVÊNIOS ACEITOS E REGRAS DE REJEIÇÃO:\nOs únicos planos de saúde aceitos são: *Unimed*, *Saúde São José*, *CISAMREC* e *Criciúma Celk*. Qualquer outro convênio (como SUS, Ipasesc, Bradesco, Cassi, etc.) NÃO é atendido. Se o paciente informar um convênio não cadastrado, informe educadamente que não atendemos por esse plano e ofereça a consulta Particular ou os convênios parceiros.\n\n3. MODELO DE CONSULTA RESOLUTIVO:\nNosso modelo busca realizar o diagnóstico e conduta logo no primeiro atendimento. Por isso, exames complementares (de laboratório ou imagem) podem ser solicitados previamente antes da consulta. Não são realizadas consultas de retorno pelo convênio. A marcação depende do paciente estar ciente e de acordo com esta regra.\n\n4. VALOR DA CONSULTA PARTICULAR:\nO valor da consulta particular é de *R$ 350,00*.\n\n5. PEDIATRIA:\nCrianças são atendidas até os 16 anos incompletos.\n\n6. SOLICITAÇÃO DE RECEITA ANTECIPADA (Medicamento Controlado):\nPacientes em tratamento que necessitam de receita de medicamento controlado antes da próxima consulta agendada podem solicitar informando nome completo, medicamento, dosagem e posologia. O envio da receita gera cobrança administrativa de envio. Opcionalmente, o paciente pode agendar uma consulta presencial.\n\n7. DOCUMENTOS, LAUDOS E ATESTADOS:\nAtestados médicos, laudos, declarações de doenças e preenchimento de documentos burocráticos só podem ser emitidos durante consulta médica previamente agendada. Não são emitidos fora da consulta.\n\n8. DÚVIDAS CLÍNICAS OU AJUSTES DE RECEITA:\nO WhatsApp é estritamente administrativo. O Dr. Carlos Tonelli não avalia exames, não orienta sobre doenças e não faz ajustes de doses de medicamentos pelo WhatsApp. Essas demandas exigem consulta (presencial ou teleconsulta) previamente marcada.\n\n9. ANTECIPAÇÃO OU ENCAIXES URGENTES:\nTrabalhamos apenas com horários agendados. Casos urgentes indicados por colegas médicos podem ter encaixes especiais. Para os demais, oferecemos inclusão na *Lista de Espera* (avisando em caso de desistências) ou o agendamento de horário extra na modalidade *Particular*.\n\n10. GRADE DE HORÁRIOS DA AGENDA (Segunda a Quinta-feira):\n- *Criciúma Celk* (4 vagas): 13h30, 13h40, 13h50, 14h00\n- *CISAMREC* (3 vagas): 14h00, 14h15, 14h30\n- *Unimed Adulto* (5 vagas): 14h45, 15h15, 15h45, 17h00, 18h00\n- *Unimed Criança* (8 vagas): 15h00, 15h30, 16h00, 17h15, 17h30, 18h15, 18h45, 19h00\n- *Saúde São José Adulto* (2 vagas): 16h15, 17h45\n- *Saúde São José Criança* (3 vagas): 16h30, 16h45, 18h30\n- *Particular* (4 vagas): 19h15, 19h30, 19h45, 20h00",
+  "clinicName": "Clínica Médica do Dr. Carlos Tonelli",
+  "doctorName": "Dr. Carlos Tonelli",
+  "fields": [
+    {
+      "key": "name",
+      "label": "Nome Completo",
+      "type": "string",
+      "questionPrompt": "Poderia, por gentileza, fornecer o seu nome completo?",
+      "validationInstruction": "O paciente deve informar seu nome completo (pelo menos nome e sobrenome, sem números). Se informar apenas um nome ou apelido, não é válido.",
+      "order": 1,
+      "required": true
+    },
+    {
+      "key": "isExistingPatient",
+      "label": "Já é Paciente da Clínica",
+      "type": "boolean",
+      "questionPrompt": "Você já é paciente da clínica ou será sua primeira consulta com o Dr. Tonelli?",
+      "validationInstruction": "Se o paciente responder que já é paciente, registre como true. Se for primeira vez ou não sabe, registre como false. Aceite variações: 'já sou paciente', 'já consultei', 'primeira vez', 'nunca fui', etc.",
+      "order": 2,
+      "required": true
+    },
+    {
+      "key": "age",
+      "label": "Idade",
+      "type": "number",
+      "questionPrompt": "Poderia informar a sua idade?",
+      "validationInstruction": "Deve ser um número inteiro positivo representando a idade do paciente (entre 0 e 120). Deve ser possível extrair um número da resposta mesmo que o paciente use palavras como 'tenho 28 anos'.",
+      "order": 3,
+      "required": true
+    },
+    {
+      "key": "healthPlan",
+      "label": "Convênio/Plano de Saúde",
+      "type": "choice",
+      "choices": [
+        "Unimed",
+        "Saúde São José",
+        "CISAMREC",
+        "Criciúma Celk",
+        "Particular"
+      ],
+      "questionPrompt": "Qual é o seu plano ou convênio de saúde?",
+      "validationInstruction": "Deve ser uma das opções aceitas pela clínica: Unimed, Saúde São José, CISAMREC, Criciúma Celk ou Particular. Se o paciente informar outro convênio (ex: SUS, Ipasesc), não é válido — informe que não atendemos e liste as opções aceitas.",
+      "order": 4,
+      "required": true
+    },
+    {
+      "key": "cardNumber",
+      "label": "Número da Carteirinha",
+      "type": "string",
+      "questionPrompt": "Por gentileza, informe o número da sua carteirinha do convênio.",
+      "validationInstruction": "Deve ser um número ou código de carteirinha de convênio. Se o paciente informou 'Particular' no campo de convênio, este campo deve ser automaticamente preenchido como 'Não aplicável' e pulado. Se o paciente disser que não tem ou não sabe, aceite e registre 'Não informado'.",
+      "order": 5,
+      "required": true,
+      "skipCondition": {
+        "field": "healthPlan",
+        "value": "Particular",
+        "autoFill": "Não aplicável (Particular)"
+      }
+    },
+    {
+      "key": "complaint",
+      "label": "Queixa Principal / Motivo da Consulta",
+      "type": "text",
+      "questionPrompt": "Poderia nos informar qual é o motivo da sua consulta, queixa principal, diagnóstico que acompanha ou exames que realiza de rotina?",
+      "validationInstruction": "O paciente deve descrever brevemente o motivo da consulta, queixa ou doença. Deve ter pelo menos 3 caracteres e não pode ser apenas 'sim', 'não' ou respostas de uma palavra que não descrevam um motivo médico.",
+      "order": 6,
+      "required": true
+    },
+    {
+      "key": "medication",
+      "label": "Necessidade de Receita de Medicamento Controlado",
+      "type": "text",
+      "questionPrompt": "Antes de prosseguir: você necessita de receita de algum medicamento controlado antes de sua consulta? Se sim, informe o medicamento e a dosagem. Se não, responda 'Não'.",
+      "validationInstruction": "O paciente deve confirmar se precisa ou não de receita de medicamento controlado. Se disser que não precisa (qualquer variação de 'não', 'não preciso', 'não necessito', 'nao'), registre como 'Não necessita'. Se precisar, deve informar o nome do medicamento. Se o paciente não souber a dosagem ou disser que busca avaliação/início de tratamento, aceite e registre a informação que ele deu (ex: 'Mounjaro - busca avaliação, dosagem a definir').",
+      "order": 7,
+      "required": true
+    },
+    {
+      "key": "agreedToTerms",
+      "label": "Concordância com as Diretrizes da Clínica",
+      "type": "boolean",
+      "questionPrompt": "Trabalhamos com um formato resolutivo: os exames necessários são pré-solicitados para avaliação já no primeiro atendimento e *não realizamos consultas de retorno pelo convênio*. Você concorda em realizar o agendamento dessa forma?",
+      "validationInstruction": "O paciente deve confirmar concordância com as regras da clínica. Qualquer variação de 'sim', 'concordo', 'de acordo', 'ok', 'pode' é válida como confirmação positiva (registrar como true). Se o paciente discordar ou tiver dúvidas, registre como false e informe que ele pode entrar em contato com a secretaria.",
+      "order": 8,
+      "required": true
+    }
+  ]
+}

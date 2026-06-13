@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuração - Chatbot Clínico Modular</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            zinc: {
+              750: '#202023',
+              850: '#18181b',
+              950: '#09090b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #09090b;
+    }
+    input::placeholder {
+      color: #52525b !important;
+    }
+    .fade-in {
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="text-zinc-100 font-sans min-h-screen py-12 px-4 md:px-8">
+
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- Cabeçalho Principal -->
+    <header class="border-b border-zinc-800 pb-8 mb-10">
+      <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+        <span>Painel de Controle Modular</span>
+        <span class="text-xs bg-emerald-950 text-emerald-400 font-semibold px-2 py-0.5 rounded border border-emerald-800/40">Triagem Ativa</span>
+      </h1>
+      <p class="text-zinc-400 mt-1 text-sm">
+        Gerencie as credenciais da clínica, simule contatos e acompanhe as triagens ativas dos pacientes em tempo real.
+      </p>
+    </header>
+
+    <!-- Grid Principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      
+      <!-- Lado Esquerdo: Status e Configurações Webhook -->
+      <div class="lg:col-span-1 space-y-6">
+        
+        <!-- Status do Sistema -->
+        <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 space-y-6">
+          <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+            Status das Conexões
+          </h2>
+          
+          <div class="space-y-4">
+            <!-- Google Auth -->
+            <div class="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+              <div>
+                <h3 class="text-xs font-medium text-zinc-400">Google OAuth</h3>
+                <p class="text-sm font-semibold mt-0.5 text-zinc-200" id="google-status-text">Carregando...</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700" id="google-badge">Pendente</span>
+            </div>
+
+            <!-- Planilha Sheets -->
+            <div class="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+              <div>
+                <h3 class="text-xs font-medium text-zinc-400">Planilha Google Sheets</h3>
+                <p class="text-sm font-semibold mt-0.5 text-zinc-200" id="sheets-status-text">Carregando...</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700" id="sheets-badge">Pendente</span>
+            </div>
+
+            <!-- WhatsApp Connected -->
+            <div class="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+              <div>
+                <h3 class="text-xs font-medium text-zinc-400">API WhatsApp Cloud</h3>
+                <p class="text-sm font-semibold mt-0.5 text-zinc-200" id="wa-status-text">Carregando...</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700" id="wa-badge">Pendente</span>
+            </div>
+
+            <!-- Simulador Doctor as Patient Toggle -->
+            <div class="flex items-center justify-between pt-1">
+              <div>
+                <h3 class="text-xs font-medium text-zinc-400">Celular Médico como Paciente</h3>
+                <p class="text-[10px] text-zinc-500 leading-normal mt-0.5">Trata seu WhatsApp de teste como paciente.</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="real-as-patient-toggle" class="sr-only peer" onchange="toggleRealAsPatient(this)">
+                <div class="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white peer-checked:after:border-white"></div>
+              </label>
+            </div>
+          </div>
+          
+          <div class="pt-2" id="google-auth-btn-container">
+            <a href="/auth/google" target="_blank" class="w-full inline-flex justify-center items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 text-xs font-medium py-2.5 rounded transition duration-150">
+              Autenticar Conta Google
+            </a>
+          </div>
+          <div class="pt-2">
+            <a href="https://developers.facebook.com/apps/" target="_blank" class="w-full inline-flex justify-center items-center gap-2 bg-zinc-850 hover:bg-zinc-750 text-white border border-zinc-700 text-xs font-medium py-2.5 rounded transition duration-150">
+              Painel Meta Developers (WhatsApp)
+            </a>
+          </div>
+        </div>
+
+        <!-- Webhook Info -->
+        <div class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 space-y-4">
+          <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+            Callback do Webhook
+          </h2>
+          
+          <div class="space-y-3 text-xs">
+            <div class="p-3 bg-zinc-950 rounded border border-zinc-800 space-y-1">
+              <span class="font-bold text-zinc-400 block">Webhook URL</span>
+              <code class="text-emerald-400 font-mono break-all select-all flex-1 text-[11px]" id="webhook-url">Carregando...</code>
+            </div>
+            <div class="p-3 bg-zinc-950 rounded border border-zinc-800 space-y-1">
+              <span class="font-bold text-zinc-400 block">Verify Token</span>
+              <code class="text-emerald-400 font-mono break-all select-all flex-1 text-[11px]" id="webhook-verify-token">Carregando...</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lado Direito: Tabs Principais -->
+      <div class="lg:col-span-3 space-y-6">
+        
+        <!-- Tab Bar -->
+        <div class="border-b border-zinc-800 flex gap-4 flex-wrap">
+          <button onclick="switchTab('config')" id="tab-btn-config" class="pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-500 transition duration-150">
+            🔧 Configurações & Simulador
+          </button>
+          <button onclick="switchTab('triage-config')" id="tab-btn-triage-config" class="pb-3 text-sm font-bold text-zinc-400 hover:text-white transition duration-150">
+            ⚙️ Triagem Modular
+          </button>
+          <button onclick="switchTab('data-mgmt')" id="tab-btn-data-mgmt" class="pb-3 text-sm font-bold text-zinc-400 hover:text-white transition duration-150">
+            🗑️ Dados & Diagnóstico
+          </button>
+          <button onclick="switchTab('transparency')" id="tab-btn-transparency" class="pb-3 text-sm font-bold text-zinc-400 hover:text-white transition duration-150 flex items-center gap-1.5">
+            👁️ Transparência de Conversas
+            <span class="bg-zinc-800 text-zinc-350 text-[10px] px-1.5 py-0.2 rounded-full font-medium" id="active-chats-badge">0</span>
+          </button>
+        </div>
+
+        <!-- Conteúdo do Tab 1: Configurações & Simulador -->
+        <div id="tab-content-config" class="grid grid-cols-1 xl:grid-cols-2 gap-8 fade-in">
+          
+          <!-- Formulário -->
+          <form id="config-form" onsubmit="salvarConfig(event)" class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 flex flex-col justify-between space-y-6">
+            <div>
+              <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider border-b border-zinc-800 pb-3">
+                Parâmetros do Chatbot
+              </h2>
+
+              <div class="grid grid-cols-1 gap-4 mt-6">
+                <!-- Modo Simulação -->
+                <div class="bg-zinc-950 p-4 rounded border border-zinc-800/80 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <label class="block text-xs font-semibold text-zinc-300">Modo Simulação (Sem WhatsApp Real)</label>
+                      <p class="text-[10px] text-zinc-550 mt-0.5 leading-normal">Ignore chaves da Meta e teste conversas diretamente pelo simulador.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="WHATSAPP_SIMULATION_MODE" name="WHATSAPP_SIMULATION_MODE" value="true" class="sr-only peer">
+                      <div class="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white peer-checked:after:border-white"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Chave Gemini -->
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">Chave API do Gemini (Google AI Studio)</label>
+                  <input type="password" id="GEMINI_API_KEY" name="GEMINI_API_KEY" placeholder="AIzaSy..." class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+                </div>
+
+                <!-- ID da Planilha Google -->
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">ID da Planilha Google Sheets</label>
+                  <input type="text" id="GOOGLE_SPREADSHEET_ID" name="GOOGLE_SPREADSHEET_ID" placeholder="ID da planilha sheets" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+                </div>
+
+                <!-- Telefone do Médico -->
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">WhatsApp do Médico (Administrador)</label>
+                  <input type="text" id="DOCTOR_PHONE" name="DOCTOR_PHONE" placeholder="ex: 5548999999999" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+                </div>
+
+                <!-- WhatsApp Phone Number ID -->
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">ID do Número de Telefone (Meta)</label>
+                  <input type="text" id="WHATSAPP_PHONE_NUMBER_ID" name="WHATSAPP_PHONE_NUMBER_ID" placeholder="Phone Number ID" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+                </div>
+
+                <!-- WhatsApp Access Token -->
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">Token de Acesso (Meta)</label>
+                  <input type="password" id="WHATSAPP_ACCESS_TOKEN" name="WHATSAPP_ACCESS_TOKEN" placeholder="Access Token" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+                </div>
+
+                <!-- WhatsApp Verify Token -->
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">Token de Verificação do Webhook</label>
+                  <input type="text" id="WHATSAPP_VERIFY_TOKEN" name="WHATSAPP_VERIFY_TOKEN" placeholder="ex: clinica_verify_token" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-4 pt-4 border-t border-zinc-800">
+              <div id="form-msg" class="hidden p-3 rounded text-xs font-medium"></div>
+              <button type="submit" class="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-bold py-2.5 px-6 rounded text-xs transition duration-150 w-full md:w-auto">
+                Salvar Configurações
+              </button>
+            </div>
+          </form>
+
+          <!-- Simulador de Chat -->
+          <div class="bg-zinc-900 rounded-xl border border-zinc-800 flex flex-col h-[650px] overflow-hidden">
+            <div class="p-4 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between">
+              <h3 class="text-xs font-semibold text-zinc-200">Simulador de Conversa</h3>
+              <button type="button" onclick="limparHistorico()" class="text-xs text-zinc-400 hover:text-white transition">Limpar</button>
+            </div>
+
+            <!-- Mensagens do Simulador -->
+            <div id="chat-messages" class="flex-1 p-4 space-y-4 overflow-y-auto bg-zinc-950/20 flex flex-col">
+              <div class="bg-zinc-850 p-3 rounded-lg border border-zinc-800 text-xs self-start max-w-[85%]">
+                Olá! Como posso ajudar você hoje no consultório?
+              </div>
+            </div>
+
+            <!-- Digitação -->
+            <form onsubmit="enviarMensagemSimulacao(event)" class="p-3 border-t border-zinc-800 bg-zinc-950 flex gap-2">
+              <input type="text" id="sim-message-input" placeholder="Envie sua resposta..." class="flex-1 bg-zinc-900 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:outline-none focus:border-zinc-650 text-zinc-200">
+              <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 rounded text-xs transition">
+                Enviar
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Conteúdo do Tab 2: Configuração da Triagem Modular -->
+        <div id="tab-content-triage-config" class="hidden fade-in space-y-6">
+          
+          <!-- Mensagem de Boas-vindas e FAQ -->
+          <div class="bg-zinc-900 rounded-xl border border-zinc-800 p-6 space-y-4">
+            <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider border-b border-zinc-800 pb-3">
+              Configurações Gerais do Atendimento
+            </h2>
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-zinc-300">Nome da Clínica</label>
+                <input type="text" id="tc-clinic-name" placeholder="Ex: Clínica do Dr. Carlos Tonelli" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+              </div>
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-zinc-300">Nome do Médico/Responsável</label>
+                <input type="text" id="tc-doctor-name" placeholder="Ex: Dr. Carlos Tonelli" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+              </div>
+            </div>
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-zinc-300">Mensagem de Boas-vindas</label>
+              <p class="text-[10px] text-zinc-500">Enviada quando o paciente manda a primeira saudação.</p>
+              <textarea id="tc-welcome-message" rows="3" placeholder="Ex: Olá! Seja bem-vindo à Clínica..." class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200 resize-none"></textarea>
+            </div>
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-zinc-300">Regras e FAQs da Clínica</label>
+              <p class="text-[10px] text-zinc-500">O agente usará estas informações para responder dúvidas dos pacientes. Use uma regra por linha.</p>
+              <textarea id="tc-faqs" rows="8" placeholder="1. Horários: segunda a quinta, 13h30 às 18h.&#10;2. Valor particular: R$ 350,00..." class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200 resize-none font-mono"></textarea>
+            </div>
+          </div>
+
+          <!-- Gerenciador de Campos -->
+          <div class="bg-zinc-900 rounded-xl border border-zinc-800 p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Campos de Coleta da Triagem</h2>
+                <p class="text-[10px] text-zinc-500 mt-0.5">Defina quais informações o agente deve coletar de cada paciente, na ordem desejada.</p>
+              </div>
+              <button onclick="addNewField()" id="btn-add-field" class="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded transition">
+                + Adicionar Campo
+              </button>
+            </div>
+
+            <!-- Lista de campos -->
+            <div id="tc-fields-list" class="space-y-3">
+              <p class="text-xs text-zinc-500 text-center py-6">Carregando campos...</p>
+            </div>
+          </div>
+
+          <!-- Botão Salvar -->
+          <div class="flex items-center gap-4">
+            <button onclick="saveTriageConfig()" class="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-bold py-2.5 px-6 rounded text-xs transition duration-150">
+              Salvar Configuração da Triagem
+            </button>
+            <span id="tc-save-msg" class="text-xs text-zinc-400 hidden"></span>
+          </div>
+        </div>
+
+        <!-- Modal de Edição de Campo -->
+        <div id="field-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-white" id="field-modal-title">Novo Campo</h3>
+              <button onclick="closeFieldModal()" class="text-zinc-400 hover:text-white text-lg leading-none">&times;</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Chave (key)</label>
+                <input type="text" id="fm-key" placeholder="ex: name, age, complaint" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-zinc-600 text-zinc-200">
+                <p class="text-[9px] text-zinc-600">Identificador único sem espaços (snake_case)</p>
+              </div>
+              <div class="space-y-1">
+                <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Rótulo (label)</label>
+                <input type="text" id="fm-label" placeholder="ex: Nome Completo" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-zinc-600 text-zinc-200">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Tipo</label>
+                <select id="fm-type" onchange="onFieldTypeChange()" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-zinc-600 text-zinc-200">
+                  <option value="string">Texto curto</option>
+                  <option value="text">Texto longo</option>
+                  <option value="number">Número</option>
+                  <option value="choice">Seleção (múltipla escolha)</option>
+                  <option value="boolean">Sim/Não</option>
+                </select>
+              </div>
+              <div class="space-y-1">
+                <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Ordem</label>
+                <input type="number" id="fm-order" value="1" min="1" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-zinc-600 text-zinc-200">
+              </div>
+            </div>
+
+            <!-- Opções de seleção (visível apenas se tipo = choice) -->
+            <div id="fm-choices-row" class="space-y-1 hidden">
+              <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Opções (separadas por vírgula)</label>
+              <input type="text" id="fm-choices" placeholder="Unimed, Saúde São José, CISAMREC, Particular" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-zinc-600 text-zinc-200">
+            </div>
+
+            <div class="space-y-1">
+              <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Pergunta do Agente ao Paciente</label>
+              <textarea id="fm-question" rows="2" placeholder="Ex: Poderia, por gentileza, informar o seu nome completo?" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-zinc-600 text-zinc-200 resize-none"></textarea>
+            </div>
+
+            <div class="space-y-1">
+              <label class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Regra de Validação (instrução para a IA)</label>
+              <textarea id="fm-validation" rows="3" placeholder="Ex: Deve conter nome e sobrenome. Não aceitar apenas um nome ou apelido." class="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-zinc-600 text-zinc-200 resize-none"></textarea>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="fm-required" checked class="accent-emerald-500">
+              <label for="fm-required" class="text-xs text-zinc-400">Campo obrigatório</label>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-zinc-800">
+              <button onclick="closeFieldModal()" class="px-4 py-2 rounded text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition">Cancelar</button>
+              <button onclick="saveFieldFromModal()" class="px-4 py-2 rounded text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition">Salvar Campo</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo do Tab 3: Dados & Diagnóstico -->
+        <div id="tab-content-data-mgmt" class="hidden fade-in space-y-6">
+
+          <!-- Resumo dos Dados -->
+          <div class="bg-zinc-900 rounded-xl border border-zinc-800 p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Dados Armazenados</h2>
+                <p class="text-[10px] text-zinc-500 mt-0.5">Sessões e históricos salvos em disco pelo chatbot.</p>
+              </div>
+              <button onclick="loadDataSummary()" class="text-[10px] bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded px-3 py-1.5 transition">↻ Atualizar</button>
+            </div>
+
+            <!-- Contadores -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-4 text-center">
+                <p class="text-3xl font-bold text-emerald-400" id="dm-session-count">—</p>
+                <p class="text-[11px] text-zinc-500 mt-1">Sessões de Triagem</p>
+              </div>
+              <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-4 text-center">
+                <p class="text-3xl font-bold text-blue-400" id="dm-history-count">—</p>
+                <p class="text-[11px] text-zinc-500 mt-1">Históricos de Conversa</p>
+              </div>
+            </div>
+
+            <!-- Lista de sessões ativas -->
+            <div id="dm-sessions-list" class="space-y-2 max-h-60 overflow-y-auto">
+              <p class="text-xs text-zinc-500 text-center py-4">Clique em "↻ Atualizar" para carregar os dados.</p>
+            </div>
+          </div>
+
+          <!-- Limpeza por Paciente -->
+          <div class="bg-zinc-900 rounded-xl border border-zinc-800 p-6 space-y-4">
+            <div class="border-b border-zinc-800 pb-3">
+              <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Limpar Paciente Específico</h2>
+              <p class="text-[10px] text-zinc-500 mt-0.5">Remove histórico de conversa e sessão de triagem de um número específico.</p>
+            </div>
+            <div class="flex gap-3">
+              <input type="text" id="dm-clear-phone" placeholder="55489xxxxxxxx (somente números)" class="flex-1 bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+              <button onclick="clearPatientData()" class="bg-amber-700 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2 rounded transition whitespace-nowrap">
+                Limpar Paciente
+              </button>
+            </div>
+            <p id="dm-clear-patient-msg" class="text-xs hidden"></p>
+          </div>
+
+          <!-- Limpeza Total (zona de perigo) -->
+          <div class="bg-zinc-900 rounded-xl border border-red-900/50 p-6 space-y-4">
+            <div class="border-b border-red-900/40 pb-3">
+              <h2 class="text-sm font-semibold text-red-400 uppercase tracking-wider">⚠️ Zona de Perigo — Limpar Todos os Dados</h2>
+              <p class="text-[10px] text-zinc-500 mt-0.5">Apaga permanentemente <strong class="text-zinc-300">todos</strong> os históricos de conversa e sessões de triagem. Use apenas para testes limpos.</p>
+            </div>
+            <div class="flex items-center gap-4">
+              <button onclick="clearAllData()" class="bg-red-700 hover:bg-red-600 text-white font-bold text-xs px-5 py-2.5 rounded transition">
+                🗑️ Apagar Tudo
+              </button>
+              <span id="dm-clear-all-msg" class="text-xs hidden"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo do Tab 4: Transparência das Conversas -->
+        <div id="tab-content-transparency" class="hidden bg-zinc-900 rounded-xl border border-zinc-800 h-[650px] flex overflow-hidden fade-in">
+          
+          <!-- Sidebar: Lista de Conversas Ativas -->
+          <div class="w-1/3 border-r border-zinc-800 flex flex-col bg-zinc-950/20">
+            <div class="p-4 border-b border-zinc-800 bg-zinc-950/50">
+              <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Conversas Recentes</h3>
+            </div>
+            <div class="flex-1 overflow-y-auto" id="chats-sidebar-list">
+              <p class="text-xs text-zinc-500 text-center p-8">Buscando conversas...</p>
+            </div>
+          </div>
+
+          <!-- Main Chat Panel -->
+          <div class="w-2/3 flex flex-col bg-zinc-950/40">
+            <!-- Cabeçalho do Chat Selecionado -->
+            <div class="p-4 border-b border-zinc-800 bg-zinc-950/50 flex justify-between items-center">
+              <div>
+                <h4 class="text-xs font-bold text-white" id="selected-chat-name">Selecione um Paciente</h4>
+                <p class="text-[10px] text-zinc-500" id="selected-chat-meta">Aguardando seleção...</p>
+              </div>
+              <span id="selected-chat-state-badge" class="hidden text-[9px] px-2 py-0.5 rounded border border-zinc-700 bg-zinc-800 text-zinc-400 font-medium">START</span>
+            </div>
+
+            <!-- Diálogo Completo -->
+            <div class="flex-1 p-6 space-y-4 overflow-y-auto flex flex-col" id="selected-chat-bubbles">
+              <p class="text-xs text-zinc-500 text-center my-auto">Selecione uma conversa ao lado para visualizar a transparência dos diálogos e decisões em tempo real.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="text-zinc-650 text-xs mt-12 border-t border-zinc-800 pt-6">
+      Chatbot Clínico Modular • Painel Administrativo de Triage e Gestão de Cotas.
+    </footer>
+  </div>
+
+  <script>
+    let activeTab = 'config';
+    let loadedConfig = false;
+    let chatsData = [];
+    let selectedChatPhone = null;
+
+    window.addEventListener('load', () => {
+      buscarStatusEConfig(true);
+      setInterval(() => buscarStatusEConfig(false), 5000);
+      setInterval(() => {
+        if (activeTab === 'transparency') {
+          buscarConversasTransparencia();
+        }
+      }, 5000);
+    });
+
+    function switchTab(tab) {
+      activeTab = tab;
+      const tabConfig = document.getElementById('tab-btn-config');
+      const tabTriageConfig = document.getElementById('tab-btn-triage-config');
+      const tabDataMgmt = document.getElementById('tab-btn-data-mgmt');
+      const tabTrans = document.getElementById('tab-btn-transparency');
+
+      const contentConfig = document.getElementById('tab-content-config');
+      const contentTriageConfig = document.getElementById('tab-content-triage-config');
+      const contentDataMgmt = document.getElementById('tab-content-data-mgmt');
+      const contentTrans = document.getElementById('tab-content-transparency');
+
+      const allBtns = [tabConfig, tabTriageConfig, tabDataMgmt, tabTrans];
+      const allContents = [contentConfig, contentTriageConfig, contentDataMgmt, contentTrans];
+      const active = 'pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-500 transition duration-150';
+      const inactive = 'pb-3 text-sm font-bold text-zinc-400 hover:text-white transition duration-150';
+
+      allBtns.forEach(b => { if (b) b.className = inactive; });
+      allContents.forEach(c => { if (c) c.classList.add('hidden'); });
+
+      if (tab === 'config') {
+        tabConfig.className = active;
+        contentConfig.classList.remove('hidden');
+      } else if (tab === 'triage-config') {
+        tabTriageConfig.className = active;
+        contentTriageConfig.classList.remove('hidden');
+        loadTriageConfigPanel();
+      } else if (tab === 'data-mgmt') {
+        tabDataMgmt.className = active;
+        contentDataMgmt.classList.remove('hidden');
+        loadDataSummary();
+      } else {
+        tabTrans.className = active + ' flex items-center gap-1.5';
+        contentTrans.classList.remove('hidden');
+        buscarConversasTransparencia();
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // Dados & Diagnóstico - Funções JS
+    // ────────────────────────────────────────────────────────────
+
+    async function loadDataSummary() {
+      try {
+        const res = await fetch('/api/data-summary');
+        const data = await res.json();
+
+        document.getElementById('dm-session-count').innerText = data.sessionCount;
+        document.getElementById('dm-history-count').innerText = data.historyCount;
+
+        const list = document.getElementById('dm-sessions-list');
+        if (!data.sessions || data.sessions.length === 0) {
+          list.innerHTML = '<p class="text-xs text-zinc-500 text-center py-4">Nenhuma sessão armazenada. Sistema limpo.</p>';
+          return;
+        }
+
+        list.innerHTML = '';
+        data.sessions.forEach(s => {
+          const stateColor = s.state === 'DONE' ? 'text-emerald-400 bg-emerald-950/30 border-emerald-900' : 'text-amber-400 bg-amber-950/30 border-amber-900';
+          const updatedStr = s.updatedAt ? new Date(s.updatedAt).toLocaleString('pt-BR') : '—';
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded px-3 py-2 gap-3';
+          row.innerHTML = `
+            <div class="flex-1 min-w-0">
+              <span class="text-xs font-bold text-zinc-100">${s.name}</span>
+              <span class="text-[10px] text-zinc-500 ml-2">${s.phone}</span>
+            </div>
+            <span class="text-[9px] px-1.5 py-0.5 rounded border ${stateColor} shrink-0">${s.state}</span>
+            <span class="text-[10px] text-zinc-600 shrink-0 hidden sm:block">${updatedStr}</span>
+            <button onclick="quickClearPatient('${s.phone}')" class="text-[10px] text-zinc-400 hover:text-red-400 bg-zinc-800 hover:bg-red-950/30 border border-zinc-700 rounded px-2 py-1 transition shrink-0">&times; Limpar</button>
+          `;
+          list.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Erro ao carregar resumo de dados:', err);
+      }
+    }
+
+    async function clearAllData() {
+      const msgEl = document.getElementById('dm-clear-all-msg');
+      if (!confirm('Tem certeza? Todos os históricos e sessões serão apagados permanentemente.')) return;
+
+      msgEl.classList.remove('hidden');
+      msgEl.className = 'text-xs text-zinc-400';
+      msgEl.innerText = 'Apagando...';
+
+      try {
+        const res = await fetch('/api/clear-all-data', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          msgEl.className = 'text-xs text-emerald-400';
+          msgEl.innerText = '✓ Todos os dados foram apagados com sucesso!';
+          await loadDataSummary();
+          setTimeout(() => msgEl.classList.add('hidden'), 4000);
+        } else {
+          msgEl.className = 'text-xs text-red-400';
+          msgEl.innerText = `Erro: ${data.error}`;
+        }
+      } catch (err) {
+        msgEl.className = 'text-xs text-red-400';
+        msgEl.innerText = `Erro: ${err.message}`;
+      }
+    }
+
+    async function clearPatientData() {
+      const phone = document.getElementById('dm-clear-phone').value.trim();
+      const msgEl = document.getElementById('dm-clear-patient-msg');
+      if (!phone) { alert('Informe o número de telefone.'); return; }
+
+      msgEl.classList.remove('hidden');
+      msgEl.className = 'text-xs text-zinc-400';
+      msgEl.innerText = 'Limpando...';
+
+      try {
+        const res = await fetch('/api/clear-patient-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          msgEl.className = 'text-xs text-emerald-400';
+          msgEl.innerText = `✓ ${data.message}`;
+          document.getElementById('dm-clear-phone').value = '';
+          await loadDataSummary();
+          setTimeout(() => msgEl.classList.add('hidden'), 4000);
+        } else {
+          msgEl.className = 'text-xs text-red-400';
+          msgEl.innerText = `Erro: ${data.error}`;
+        }
+      } catch (err) {
+        msgEl.className = 'text-xs text-red-400';
+        msgEl.innerText = `Erro: ${err.message}`;
+      }
+    }
+
+    async function quickClearPatient(phone) {
+      try {
+        await fetch('/api/clear-patient-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        await loadDataSummary();
+      } catch (err) { console.error(err); }
+    }
+
+
+    async function buscarConversasTransparencia() {
+      try {
+        const response = await fetch('/api/chats');
+        if (!response.ok) return;
+        chatsData = await response.json();
+        
+        // Atualiza a contagem ativas
+        const badge = document.getElementById('active-chats-badge');
+        if (badge) badge.innerText = chatsData.length;
+
+        const listDiv = document.getElementById('chats-sidebar-list');
+        if (chatsData.length === 0) {
+          listDiv.innerHTML = `<p class="text-xs text-zinc-500 text-center p-8">Nenhuma conversa encontrada no sistema.</p>`;
+          return;
+        }
+
+        listDiv.innerHTML = '';
+        chatsData.forEach(chat => {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.onclick = () => selectChat(chat.phone);
+          
+          const isSelected = chat.phone === selectedChatPhone;
+          item.className = `w-full text-left p-4 border-b border-zinc-900 transition flex flex-col gap-1 ${isSelected ? 'bg-zinc-800/40 border-r-2 border-r-emerald-500' : 'hover:bg-zinc-850/50'}`;
+
+          const stateLabel = chat.state === 'DONE' ? 'Concluída' : 'Em Triagem';
+          const stateColor = chat.state === 'DONE' ? 'text-emerald-400 bg-emerald-950/30 border-emerald-900' : 'text-amber-400 bg-amber-950/30 border-amber-900';
+
+          item.innerHTML = `
+            <div class="flex justify-between items-center w-full">
+              <span class="text-xs font-bold text-zinc-200">${chat.name}</span>
+              <span class="text-[9px] px-1.5 py-0.2 rounded border ${stateColor}">${stateLabel}</span>
+            </div>
+            <span class="text-[10px] text-zinc-550">${chat.phone}</span>
+            <span class="text-[10px] text-zinc-400 truncate mt-1">${chat.lastMessage || '(sem mensagens)'}</span>
+          `;
+          listDiv.appendChild(item);
+        });
+
+        // Recarrega bolhas se um chat estiver selecionado para manter atualizado em tempo real
+        if (selectedChatPhone) {
+          const activeChat = chatsData.find(c => c.phone === selectedChatPhone);
+          if (activeChat) {
+            renderChatBubbles(activeChat);
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao buscar transparência de conversas:', err);
+      }
+    }
+
+    function selectChat(phone) {
+      selectedChatPhone = phone;
+      const chat = chatsData.find(c => c.phone === phone);
+      if (!chat) return;
+
+      document.getElementById('selected-chat-name').innerText = chat.name;
+      document.getElementById('selected-chat-meta').innerText = `WhatsApp: ${chat.phone} • Út. Atividade: ${new Date(chat.updatedAt).toLocaleString('pt-BR')}`;
+      
+      const badge = document.getElementById('selected-chat-state-badge');
+      badge.innerText = chat.state;
+      badge.classList.remove('hidden');
+
+      renderChatBubbles(chat);
+      
+      // Atualiza a sidebar para aplicar o estilo visual selecionado
+      buscarConversasTransparencia();
+    }
+
+    function renderChatBubbles(chat) {
+      const container = document.getElementById('selected-chat-bubbles');
+      container.innerHTML = '';
+
+      if (chat.messages.length === 0) {
+        container.innerHTML = `<p class="text-xs text-zinc-500 text-center my-auto">Esta conversa está vazia.</p>`;
+        return;
+      }
+
+      chat.messages.forEach(msg => {
+        const bubbleWrap = document.createElement('div');
+        const isUser = msg.role === 'user';
+        
+        if (isUser) {
+          bubbleWrap.className = 'flex flex-col items-end gap-1 max-w-[80%] self-end';
+          bubbleWrap.innerHTML = `
+            <div class="bg-zinc-800 border border-zinc-700/50 text-zinc-200 text-xs px-3.5 py-2 rounded-xl rounded-tr-none leading-relaxed">
+              ${msg.content}
+            </div>
+            <span class="text-[9px] text-zinc-650">${new Date(msg.timestamp).toLocaleTimeString('pt-BR')} • Paciente</span>
+          `;
+        } else {
+          bubbleWrap.className = 'flex flex-col items-start gap-1 max-w-[80%] self-start';
+          bubbleWrap.innerHTML = `
+            <div class="bg-emerald-950/30 border border-emerald-900/50 text-zinc-200 text-xs px-3.5 py-2 rounded-xl rounded-tl-none leading-relaxed">
+              ${msg.content}
+            </div>
+            <span class="text-[9px] text-zinc-650">${new Date(msg.timestamp).toLocaleTimeString('pt-BR')} • IA Triagem</span>
+          `;
+        }
+        container.appendChild(bubbleWrap);
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function buscarStatusEConfig(carregarInputs = false) {
+      try {
+        const response = await fetch('/api/config');
+        const data = await response.json();
+
+        if (carregarInputs && !loadedConfig) {
+          const config = data.config || {};
+          for (const key in config) {
+            const input = document.getElementById(key);
+            if (input) {
+              if (input.type === 'checkbox') {
+                input.checked = config[key] === 'true';
+              } else {
+                input.value = config[key];
+              }
+            }
+          }
+          loadedConfig = true;
+        }
+
+        // Webhook URL e Verify Token dinâmicos
+        document.getElementById('webhook-url').innerText = `${window.location.origin}/webhook/whatsapp`;
+        document.getElementById('webhook-verify-token').innerText = data.config.WHATSAPP_VERIFY_TOKEN || 'clinica_verify_token';
+
+        // Google Auth
+        const gBadge = document.getElementById('google-badge');
+        const gText = document.getElementById('google-status-text');
+        if (data.status.googleAuthenticated) {
+          gBadge.innerText = 'Autenticado';
+          gBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-850';
+          gText.innerText = 'Conectado ao Google Workspace';
+        } else {
+          gBadge.innerText = 'Pendente';
+          gBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-red-950/40 text-red-400 border border-red-850';
+          gText.innerText = 'OAuth pendente';
+        }
+
+        // Sheets
+        const sBadge = document.getElementById('sheets-badge');
+        const sText = document.getElementById('sheets-status-text');
+        if (data.status.sheetsConnected) {
+          sBadge.innerText = 'Conectado';
+          sBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-850';
+          sText.innerText = 'Planilhas prontas';
+        } else {
+          sBadge.innerText = 'Inativo';
+          sBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-red-950/40 text-red-400 border border-red-850';
+          sText.innerText = 'Sem ID configurado';
+        }
+
+        // WhatsApp
+        const wBadge = document.getElementById('wa-badge');
+        const wText = document.getElementById('wa-status-text');
+        if (data.status.simulationActive) {
+          wBadge.innerText = 'Simulado';
+          wBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-purple-950/40 text-purple-400 border border-purple-850';
+          wText.innerText = 'WhatsApp Emulado';
+        } else if (data.status.whatsappConnected) {
+          wBadge.innerText = 'Conectado';
+          wBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-850';
+          wText.innerText = 'API Ativa';
+        } else {
+          wBadge.innerText = 'Inativo';
+          wBadge.className = 'px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700';
+          wText.innerText = 'Sem credenciais';
+        }
+
+        // Toggle médico como paciente
+        const toggleResponse = await fetch('/api/test/doctor-as-patient');
+        const toggleData = await toggleResponse.json();
+        const toggleEl = document.getElementById('real-as-patient-toggle');
+        if (toggleEl) {
+          toggleEl.checked = toggleData.active;
+        }
+
+      } catch (err) {
+        console.error('Erro ao obter status:', err);
+      }
+    }
+
+    async function toggleRealAsPatient(checkbox) {
+      try {
+        const active = checkbox.checked;
+        await fetch('/api/test/toggle-doctor-as-patient', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active })
+        });
+      } catch (err) {
+        checkbox.checked = !checkbox.checked;
+      }
+    }
+
+    async function salvarConfig(event) {
+      event.preventDefault();
+      const form = document.getElementById('config-form');
+      const formData = new FormData(form);
+      const payload = {};
+      formData.forEach((value, key) => {
+        payload[key] = value;
+      });
+
+      const simCheckbox = document.getElementById('WHATSAPP_SIMULATION_MODE');
+      payload['WHATSAPP_SIMULATION_MODE'] = simCheckbox && simCheckbox.checked ? 'true' : 'false';
+
+      const msgDiv = document.getElementById('form-msg');
+      msgDiv.className = 'p-3 rounded text-xs font-medium bg-zinc-800 text-zinc-300 border border-zinc-700';
+      msgDiv.innerText = 'Gravando...';
+      msgDiv.classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+          msgDiv.className = 'p-3 rounded text-xs font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-900';
+          msgDiv.innerText = 'Configurações gravadas com sucesso!';
+          buscarStatusEConfig(true);
+        } else {
+          msgDiv.className = 'p-3 rounded text-xs font-medium bg-red-955/40 text-red-400 border border-red-800';
+          msgDiv.innerText = 'Erro ao salvar!';
+        }
+      } catch (err) {
+        msgDiv.className = 'p-3 rounded text-xs font-medium bg-red-955/40 text-red-400 border border-red-800';
+        msgDiv.innerText = err.message;
+      }
+    }
+
+    function limparHistorico() {
+      const messagesDiv = document.getElementById('chat-messages');
+      messagesDiv.innerHTML = `<div class="bg-zinc-850 p-3 rounded-lg border border-zinc-800 text-xs self-start max-w-[85%]">Conversa limpa. Como posso ajudar?</div>`;
+    }
+
+    function appendBubble(text, isSelf) {
+      const messagesDiv = document.getElementById('chat-messages');
+      const bubble = document.createElement('div');
+      
+      if (isSelf) {
+        bubble.className = 'bg-zinc-800 border border-zinc-700/50 p-3 rounded-lg text-xs self-end max-w-[85%]';
+      } else {
+        bubble.className = 'bg-zinc-850 border border-zinc-800 p-3 rounded-lg text-xs self-start max-w-[85%]';
+      }
+      
+      bubble.innerText = text;
+      messagesDiv.appendChild(bubble);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    async function enviarMensagemSimulacao(event) {
+      event.preventDefault();
+      const input = document.getElementById('sim-message-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendBubble(text, true);
+      input.value = '';
+
+      try {
+        const response = await fetch('/api/simulate-incoming', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          appendBubble(data.response, false);
+        } else {
+          appendBubble(`Erro: ${data.error}`, false);
+        }
+      } catch (err) {
+        appendBubble(`Erro de rede: ${err.message}`, false);
+      }
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // Triage Config Panel - Gerenciamento Modular
+    // ────────────────────────────────────────────────────────────
+
+    let triageConfigData = null;
+    let editingFieldIndex = -1;
+
+    async function loadTriageConfigPanel() {
+      try {
+        const res = await fetch('/api/triage-config');
+        triageConfigData = await res.json();
+        document.getElementById('tc-clinic-name').value = triageConfigData.clinicName || '';
+        document.getElementById('tc-doctor-name').value = triageConfigData.doctorName || '';
+        document.getElementById('tc-welcome-message').value = triageConfigData.welcomeMessage || '';
+        document.getElementById('tc-faqs').value = triageConfigData.faqs || '';
+        renderFieldsList();
+      } catch (err) { console.error('Erro ao carregar triage config:', err); }
+    }
+
+    const typeLabels = { string: 'Texto Curto', text: 'Texto Longo', number: 'Número', choice: 'Múltipla Escolha', boolean: 'Sim/Não' };
+
+    function renderFieldsList() {
+      const list = document.getElementById('tc-fields-list');
+      if (!triageConfigData || !triageConfigData.fields || triageConfigData.fields.length === 0) {
+        list.innerHTML = '<p class="text-xs text-zinc-500 text-center py-6">Nenhum campo configurado. Clique em "+ Adicionar Campo".</p>';
+        return;
+      }
+      const sorted = [...triageConfigData.fields].sort((a, b) => a.order - b.order);
+      list.innerHTML = '';
+      sorted.forEach((field, idx) => {
+        const card = document.createElement('div');
+        card.className = 'flex items-center gap-3 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3';
+        const reqBadge = field.required ? '<span class="text-[9px] bg-red-950/40 text-red-400 border border-red-900 rounded px-1.5 py-0.5">Obrigatório</span>' : '';
+        const choicesText = field.choices ? ` · ${field.choices.join(', ')}` : '';
+        card.innerHTML = `
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs font-bold text-zinc-100">${field.label}</span>
+              <span class="text-[9px] bg-zinc-800 text-zinc-400 border border-zinc-700 rounded px-1.5 py-0.5 font-mono">${field.key}</span>
+              <span class="text-[9px] bg-zinc-800 text-blue-400 border border-zinc-700 rounded px-1.5 py-0.5">${typeLabels[field.type] || field.type}</span>
+              ${reqBadge}
+            </div>
+            <p class="text-[10px] text-zinc-500 mt-0.5 truncate">${field.questionPrompt}${choicesText}</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[10px] text-zinc-600 w-5 text-center">#${field.order}</span>
+            <button onclick="editField(${idx})" class="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded px-2 py-1 transition">Editar</button>
+            <button onclick="removeField(${idx})" class="text-[10px] text-zinc-400 hover:text-red-400 bg-zinc-800 hover:bg-red-950/30 border border-zinc-700 rounded px-2 py-1 transition">&times;</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function addNewField() {
+      editingFieldIndex = -1;
+      document.getElementById('field-modal-title').innerText = 'Novo Campo';
+      document.getElementById('fm-key').value = '';
+      document.getElementById('fm-label').value = '';
+      document.getElementById('fm-type').value = 'string';
+      document.getElementById('fm-order').value = triageConfigData ? (triageConfigData.fields.length + 1) : 1;
+      document.getElementById('fm-question').value = '';
+      document.getElementById('fm-validation').value = '';
+      document.getElementById('fm-required').checked = true;
+      document.getElementById('fm-choices').value = '';
+      document.getElementById('fm-choices-row').classList.add('hidden');
+      document.getElementById('field-modal').classList.remove('hidden');
+    }
+
+    function editField(idx) {
+      const sorted = [...triageConfigData.fields].sort((a, b) => a.order - b.order);
+      const field = sorted[idx];
+      editingFieldIndex = triageConfigData.fields.findIndex(f => f.key === field.key);
+      document.getElementById('field-modal-title').innerText = 'Editar Campo';
+      document.getElementById('fm-key').value = field.key;
+      document.getElementById('fm-label').value = field.label;
+      document.getElementById('fm-type').value = field.type;
+      document.getElementById('fm-order').value = field.order;
+      document.getElementById('fm-question').value = field.questionPrompt;
+      document.getElementById('fm-validation').value = field.validationInstruction || '';
+      document.getElementById('fm-required').checked = field.required !== false;
+      document.getElementById('fm-choices').value = (field.choices || []).join(', ');
+      document.getElementById('fm-choices-row').classList.toggle('hidden', field.type !== 'choice');
+      document.getElementById('field-modal').classList.remove('hidden');
+    }
+
+    function removeField(idx) {
+      const sorted = [...triageConfigData.fields].sort((a, b) => a.order - b.order);
+      const field = sorted[idx];
+      triageConfigData.fields = triageConfigData.fields.filter(f => f.key !== field.key);
+      renderFieldsList();
+    }
+
+    function onFieldTypeChange() {
+      const type = document.getElementById('fm-type').value;
+      document.getElementById('fm-choices-row').classList.toggle('hidden', type !== 'choice');
+    }
+
+    function saveFieldFromModal() {
+      const key = document.getElementById('fm-key').value.trim().replace(/\s+/g, '_');
+      const label = document.getElementById('fm-label').value.trim();
+      const type = document.getElementById('fm-type').value;
+      const order = parseInt(document.getElementById('fm-order').value) || 1;
+      const question = document.getElementById('fm-question').value.trim();
+      const validation = document.getElementById('fm-validation').value.trim();
+      const required = document.getElementById('fm-required').checked;
+      const choicesRaw = document.getElementById('fm-choices').value.trim();
+      const choices = type === 'choice' && choicesRaw ? choicesRaw.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+
+      if (!key || !label || !question) { alert('Preencha ao menos: Chave, Rótulo e Pergunta.'); return; }
+
+      const fieldObj = { key, label, type, questionPrompt: question, validationInstruction: validation, order, required };
+      if (choices) fieldObj.choices = choices;
+
+      if (editingFieldIndex >= 0) {
+        triageConfigData.fields[editingFieldIndex] = fieldObj;
+      } else {
+        if (triageConfigData.fields.some(f => f.key === key)) { alert(`Já existe um campo com a chave "${key}".`); return; }
+        triageConfigData.fields.push(fieldObj);
+      }
+      closeFieldModal();
+      renderFieldsList();
+    }
+
+    function closeFieldModal() {
+      document.getElementById('field-modal').classList.add('hidden');
+    }
+
+    async function saveTriageConfig() {
+      if (!triageConfigData) return;
+      triageConfigData.clinicName = document.getElementById('tc-clinic-name').value.trim();
+      triageConfigData.doctorName = document.getElementById('tc-doctor-name').value.trim();
+      triageConfigData.welcomeMessage = document.getElementById('tc-welcome-message').value.trim();
+      triageConfigData.faqs = document.getElementById('tc-faqs').value.trim();
+
+      const msgEl = document.getElementById('tc-save-msg');
+      msgEl.classList.remove('hidden');
+      msgEl.innerText = 'Salvando...';
+      msgEl.className = 'text-xs text-zinc-400';
+
+      try {
+        const res = await fetch('/api/triage-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(triageConfigData)
+        });
+        if (res.ok) {
+          msgEl.className = 'text-xs text-emerald-400';
+          msgEl.innerText = '✓ Configuração salva com sucesso!';
+          setTimeout(() => msgEl.classList.add('hidden'), 3000);
+        } else {
+          const err = await res.json();
+          msgEl.className = 'text-xs text-red-400';
+          msgEl.innerText = `Erro: ${err.error}`;
+        }
+      } catch (err) {
+        msgEl.className = 'text-xs text-red-400';
+        msgEl.innerText = `Erro: ${err.message}`;
+      }
+    }
+
+    document.addEventListener('click', function(e) {
+      const modal = document.getElementById('field-modal');
+      if (modal && e.target === modal) closeFieldModal();
+    });
+  </script>
+</body>
+</html>
