@@ -161,6 +161,10 @@
             👁️ Transparência de Conversas
             <span class="bg-zinc-800 text-zinc-350 text-[10px] px-1.5 py-0.2 rounded-full font-medium" id="active-chats-badge">0</span>
           </button>
+          <button onclick="switchTab('completed')" id="tab-btn-completed" class="pb-3 text-sm font-bold text-zinc-400 hover:text-white transition duration-150 flex items-center gap-1.5">
+            ✅ Triagens Concluídas
+            <span class="bg-emerald-950/40 text-emerald-400 text-[10px] px-1.5 py-0.2 rounded border border-emerald-850 font-medium" id="completed-triage-badge">0</span>
+          </button>
         </div>
 
         <!-- Conteúdo do Tab 1: Configurações & Simulador -->
@@ -472,6 +476,24 @@
           </div>
         </div>
 
+        <!-- Conteúdo do Tab 5: Triagens Concluídas -->
+        <div id="tab-content-completed" class="hidden fade-in space-y-6">
+          <div class="bg-zinc-900 rounded-xl border border-zinc-800 p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h2 class="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Fila de Triagens Concluídas</h2>
+                <p class="text-[10px] text-zinc-500 mt-0.5">Pacientes que finalizaram a triagem com sucesso e estão prontos para agendamento manual pelas secretárias.</p>
+              </div>
+              <button onclick="buscarTriagensConcluidas()" class="text-[10px] bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded px-3 py-1.5 transition">↻ Atualizar Fila</button>
+            </div>
+
+            <!-- Lista de Triagens Concluídas -->
+            <div id="completed-triages-list" class="space-y-4">
+              <p class="text-xs text-zinc-500 text-center py-6">Nenhuma triagem concluída na fila.</p>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -493,8 +515,12 @@
       setInterval(() => {
         if (activeTab === 'transparency') {
           buscarConversasTransparencia();
+        } else if (activeTab === 'completed') {
+          buscarTriagensConcluidas();
         }
+        atualizarBadgeConcluidas();
       }, 5000);
+      atualizarBadgeConcluidas(); // Executa uma vez no load
     });
 
     function switchTab(tab) {
@@ -503,14 +529,16 @@
       const tabTriageConfig = document.getElementById('tab-btn-triage-config');
       const tabDataMgmt = document.getElementById('tab-btn-data-mgmt');
       const tabTrans = document.getElementById('tab-btn-transparency');
+      const tabCompleted = document.getElementById('tab-btn-completed');
 
       const contentConfig = document.getElementById('tab-content-config');
       const contentTriageConfig = document.getElementById('tab-content-triage-config');
       const contentDataMgmt = document.getElementById('tab-content-data-mgmt');
       const contentTrans = document.getElementById('tab-content-transparency');
+      const contentCompleted = document.getElementById('tab-content-completed');
 
-      const allBtns = [tabConfig, tabTriageConfig, tabDataMgmt, tabTrans];
-      const allContents = [contentConfig, contentTriageConfig, contentDataMgmt, contentTrans];
+      const allBtns = [tabConfig, tabTriageConfig, tabDataMgmt, tabTrans, tabCompleted];
+      const allContents = [contentConfig, contentTriageConfig, contentDataMgmt, contentTrans, contentCompleted];
       const active = 'pb-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-500 transition duration-150';
       const inactive = 'pb-3 text-sm font-bold text-zinc-400 hover:text-white transition duration-150';
 
@@ -528,10 +556,14 @@
         tabDataMgmt.className = active;
         contentDataMgmt.classList.remove('hidden');
         loadDataSummary();
-      } else {
+      } else if (tab === 'transparency') {
         tabTrans.className = active + ' flex items-center gap-1.5';
         contentTrans.classList.remove('hidden');
         buscarConversasTransparencia();
+      } else if (tab === 'completed') {
+        tabCompleted.className = active + ' flex items-center gap-1.5';
+        contentCompleted.classList.remove('hidden');
+        buscarTriagensConcluidas();
       }
     }
 
@@ -1083,6 +1115,121 @@
       } catch (err) {
         msgEl.className = 'text-xs text-red-400';
         msgEl.innerText = `Erro: ${err.message}`;
+      }
+    }
+
+    async function buscarTriagensConcluidas() {
+      try {
+        const response = await fetch('/api/chats');
+        if (!response.ok) return;
+        const chats = await response.json();
+        
+        // Se a config de triagem ainda não estiver carregada em memória, carrega
+        if (!triageConfigData) {
+          const res = await fetch('/api/triage-config');
+          triageConfigData = await res.json();
+        }
+
+        const completed = chats.filter(c => c.state === 'DONE');
+        
+        // Atualiza badge de concluídas
+        const badge = document.getElementById('completed-triage-badge');
+        if (badge) badge.innerText = completed.length;
+
+        const listDiv = document.getElementById('completed-triages-list');
+        if (completed.length === 0) {
+          listDiv.innerHTML = `
+            <div class="text-center py-12 bg-zinc-950/20 border border-dashed border-zinc-800 rounded-lg">
+              <p class="text-xs text-zinc-550">Nenhum paciente na fila de triagens concluídas no momento.</p>
+            </div>
+          `;
+          return;
+        }
+
+        listDiv.innerHTML = '';
+        completed.forEach(chat => {
+          const card = document.createElement('div');
+          card.className = 'bg-zinc-950 border border-zinc-850 rounded-xl p-5 space-y-4 fade-in';
+
+          let fieldsHTML = '';
+          if (chat.data) {
+            fieldsHTML = Object.entries(chat.data).map(([key, val]) => {
+              let label = key;
+              if (triageConfigData && triageConfigData.fields) {
+                const found = triageConfigData.fields.find(f => f.key === key);
+                if (found) label = found.label;
+              }
+              return `
+                <div class="bg-zinc-900/60 p-2.5 rounded border border-zinc-800 text-xs">
+                  <span class="text-zinc-500 block font-medium mb-0.5 text-[10px] uppercase">${label}</span>
+                  <span class="text-zinc-200 font-semibold">${val}</span>
+                </div>
+              `;
+            }).join('');
+          }
+
+          const completedDate = chat.updatedAt ? new Date(chat.updatedAt).toLocaleString('pt-BR') : '—';
+
+          card.innerHTML = `
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-900 pb-3 gap-2">
+              <div>
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  ${chat.name}
+                  <span class="text-[10px] bg-emerald-950/40 text-emerald-400 border border-emerald-850 px-2 py-0.5 rounded-full font-medium">Triagem Concluída</span>
+                </h3>
+                <p class="text-xs text-zinc-500 mt-0.5">Telefone: ${chat.phone} · Concluído em: ${completedDate}</p>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <a href="https://wa.me/${chat.phone}" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition inline-flex items-center gap-1.5">
+                  💬 Chamar no WhatsApp
+                </a>
+                <button onclick="arquivarTriagem('${chat.phone}')" class="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-350 text-xs font-bold px-3.5 py-2 rounded-lg transition">
+                  ✓ Limpar & Arquivar
+                </button>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              ${fieldsHTML}
+            </div>
+          `;
+          listDiv.appendChild(card);
+        });
+      } catch (err) {
+        console.error('Erro ao carregar triagens concluídas:', err);
+      }
+    }
+
+    async function atualizarBadgeConcluidas() {
+      try {
+        const response = await fetch('/api/chats');
+        if (!response.ok) return;
+        const chats = await response.json();
+        const completedCount = chats.filter(c => c.state === 'DONE').length;
+        const badge = document.getElementById('completed-triage-badge');
+        if (badge) badge.innerText = completedCount;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function arquivarTriagem(phone) {
+      if (!confirm('Deseja arquivar esta triagem? Isso removerá o paciente da fila de atendimento (limpando a sessão de triagem para que ele possa iniciar uma nova se enviar mensagem novamente).')) return;
+      try {
+        const res = await fetch('/api/clear-patient-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        if (res.ok) {
+          await buscarTriagensConcluidas();
+          if (typeof loadDataSummary === 'function') loadDataSummary();
+          buscarConversasTransparencia();
+        } else {
+          alert('Erro ao arquivar triagem.');
+        }
+      } catch (err) {
+        console.error('Erro ao arquivar:', err);
       }
     }
 

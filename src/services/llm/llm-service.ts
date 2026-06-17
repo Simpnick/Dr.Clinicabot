@@ -38,18 +38,32 @@ function formatHistoryForGemini(history: ChatMessage[]): any[] {
 /**
  * Envia mensagens para o LM Studio local rodando o modelo (ex: Gemma 3)
  */
-async function callLMStudio(history: ChatMessage[], systemInstruction: string, temperature: number = 0.7): Promise<string> {
+async function callLMStudio(history: ChatMessage[], systemInstruction: string, temperature: number = 0.7, jsonMode: boolean = false): Promise<string> {
   const url = `${config.LLM_API_BASE_URL}/chat/completions`;
   const messages = formatHistoryForLMStudio(history, systemInstruction);
 
+  const payload: any = {
+    model: config.LLM_MODEL_NAME,
+    messages,
+    temperature,
+    max_tokens: 2048
+  };
+
+  if (jsonMode) {
+    payload.response_format = {
+      type: 'json_schema',
+      json_schema: {
+        name: 'json_output',
+        schema: {
+          type: 'object'
+        }
+      }
+    };
+  }
+
   try {
     console.log(`[LLM Service] Chamando LM Studio local (${config.LLM_MODEL_NAME}) em: ${url} (temp: ${temperature})`);
-    const response = await axios.post(url, {
-      model: config.LLM_MODEL_NAME,
-      messages,
-      temperature,
-      max_tokens: 2048
-    }, {
+    const response = await axios.post(url, payload, {
       timeout: 30000 // 30 segundos de timeout
     });
 
@@ -68,7 +82,7 @@ async function callLMStudio(history: ChatMessage[], systemInstruction: string, t
 /**
  * Envia mensagens para o Gemini Cloud (Google AI Studio)
  */
-async function callGemini(history: ChatMessage[], systemInstruction: string, temperature: number = 0.7): Promise<string> {
+async function callGemini(history: ChatMessage[], systemInstruction: string, temperature: number = 0.7, jsonMode: boolean = false): Promise<string> {
   if (!config.GEMINI_API_KEY) {
     throw new Error('Chave GEMINI_API_KEY não configurada no arquivo .env');
   }
@@ -77,6 +91,15 @@ async function callGemini(history: ChatMessage[], systemInstruction: string, tem
   const geminiHistory = formatHistoryForGemini(history);
   const geminiModel = 'gemini-2.5-flash';
 
+  const chatConfig: any = {
+    systemInstruction,
+    temperature
+  };
+
+  if (jsonMode) {
+    chatConfig.responseMimeType = 'application/json';
+  }
+
   try {
     console.log(`[LLM Service] Chamando Gemini Cloud (${geminiModel}) (temp: ${temperature})`);
     
@@ -84,10 +107,7 @@ async function callGemini(history: ChatMessage[], systemInstruction: string, tem
     const chat = ai.chats.create({
       model: geminiModel,
       history: geminiHistory,
-      config: {
-        systemInstruction,
-        temperature
-      }
+      config: chatConfig
     });
 
     // Pega a última mensagem para enviar como estímulo
@@ -106,17 +126,19 @@ async function callGemini(history: ChatMessage[], systemInstruction: string, tem
  * @param history Histórico de mensagens da sessão
  * @param systemInstruction Instruções do sistema (persona da IA)
  * @param temperature Parâmetro opcional de temperatura da IA
+ * @param jsonMode Força o modelo a retornar um objeto JSON válido
  */
 export async function generateLLMResponse(
   history: ChatMessage[],
   systemInstruction: string,
-  temperature: number = 0.7
+  temperature: number = 0.7,
+  jsonMode: boolean = false
 ): Promise<string> {
   const provider = config.LLM_PROVIDER;
 
   if (provider === 'lm-studio') {
-    return await callLMStudio(history, systemInstruction, temperature);
+    return await callLMStudio(history, systemInstruction, temperature, jsonMode);
   }
 
-  return await callGemini(history, systemInstruction, temperature);
+  return await callGemini(history, systemInstruction, temperature, jsonMode);
 }

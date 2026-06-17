@@ -12,7 +12,7 @@ import {
   loadTriageConfig
 } from './triage-flow';
 import { config } from '../../config/env-manager';
-import { sendWhatsAppMessage } from '../../services/whatsapp/client';
+import { sendWhatsAppMessage, normalizeBrazilianPhone } from '../../services/whatsapp/client';
 
 const CHAT_HISTORIES_FILE = path.join(process.cwd(), 'chat_histories.json');
 
@@ -70,6 +70,75 @@ interface ValidationResult {
   isCorrection: boolean;
   correctedFieldKey: string;
   correctedFieldValue: any;
+}
+
+
+function cleanLlmJson(str: string): string {
+  let clean = str.trim();
+  clean = clean.replace(/^```json/i, '');
+  clean = clean.replace(/^```/, '');
+  clean = clean.replace(/```$/, '');
+  clean = clean.trim();
+
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start === -1 || end === -1) {
+    return clean;
+  }
+  clean = clean.substring(start, end + 1);
+
+  let inString = false;
+  let escaped = false;
+  let result = '';
+  
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i];
+    
+    if (char === '"' && !escaped) {
+      let isLegitimate = false;
+      
+      if (!inString) {
+        let prevIdx = i - 1;
+        while (prevIdx >= 0 && /\s/.test(clean[prevIdx])) {
+          prevIdx--;
+        }
+        if (prevIdx < 0 || ['{', ':', ',', '['].includes(clean[prevIdx])) {
+          isLegitimate = true;
+        }
+      } else {
+        let nextIdx = i + 1;
+        while (nextIdx < clean.length && /\s/.test(clean[nextIdx])) {
+          nextIdx++;
+        }
+        if (nextIdx >= clean.length || ['}', ':', ',', ']'].includes(clean[nextIdx])) {
+          isLegitimate = true;
+        }
+      }
+      
+      if (isLegitimate) {
+        inString = !inString;
+        result += char;
+      } else {
+        result += '\\"';
+      }
+    } else {
+      if (char === '\\' && !escaped) {
+        escaped = true;
+      } else {
+        escaped = false;
+      }
+      
+      if (inString && (char === '\n' || char === '\r')) {
+        if (char === '\n') {
+          result += '\\n';
+        }
+      } else {
+        result += char;
+      }
+    }
+  }
+  
+  return result;
 }
 
 async function runValidationAgent(
@@ -132,6 +201,8 @@ REGRAS CRÍTICAS DE FISCALIZAÇÃO:
 - Você é o FISCALIZADOR estrito das regras de validação da clínica. Verifique com máximo rigor se a resposta do paciente atende de verdade à "Regra de validação" descrita.
 - NUNCA invente, presuma ou fantasie dados que o paciente não forneceu explicitamente. Se a resposta for vaga, incompleta, apenas uma saudação, ou não se enquadrar na regra de validação, defina "isValid": false.
 - Se "isValid" for false, explique em "errorMessage" de forma clara, amigável e precisa o que está faltando ou o que está incorreto para que o Agente 1 de diálogo possa realizar uma nova abordagem e solicitar a informação de outra forma.
+- No campo "errorMessage", nunca use aspas duplas adicionais. Se precisar citar algo, use aspas simples (') ou simplesmente sem aspas. Nunca use quebras de linha reais no texto do JSON.
+- Para o campo de "Nome Completo" (chave "name"): Considere como VÁLIDO qualquer nome contendo pelo menos duas palavras (um primeiro nome e pelo menos um sobrenome), sem números. NÃO exija que o paciente informe todos os sobrenomes possíveis se ele já forneceu um nome e pelo menos um sobrenome válido (ex: "Ana Paula robles" é válido, mesmo que em mensagens anteriores tenha aparecido "Ana Paula Robles Graciano"). O objetivo é ter um nome identificável com sobrenome, e não fiscalizar todos os sobrenomes históricos do paciente.
 - Se "isFAQ" for true, "isValid" deve ser false e "extractedValue" deve ser null.
 - Se "isCorrection" for true, analise qual campo o paciente está corrigindo, e preencha "correctedFieldKey" e "correctedFieldValue".
   - "isCorrection" só deve ser true quando o paciente EXPLICITAMENTE menciona que um dado ANTERIOR está ERRADO e fornece o NOVO valor correto. Exemplo: "na verdade meu nome é João" = correção do nome.
@@ -143,21 +214,39 @@ REGRAS CRÍTICAS DE FISCALIZAÇÃO:
 - Para campos do tipo "choice": normalize para a opção mais próxima das disponíveis.
 - NÃO adicione texto fora do JSON. Retorne APENAS o objeto JSON bruto.`;
 
-  try {
-    const response = await generateLLMResponse(history, VALIDATION_PROMPT, 0.1);
-    const clean = response.trim();
-    const startIdx = clean.indexOf('{');
-    const endIdx = clean.lastIndexOf('}');
-    if (startIdx !== -1 && endIdx !== -1) {
-      const parsed = JSON.parse(clean.substring(startIdx, endIdx + 1));
-      return { ...defaultResult, ...parsed };
+  let lastError: any = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await generateLLMResponse(history, VALIDATION_PROMPT, 0.1, true);
+      const cleaned = cleanLlmJson(response);
+      const startIdx = cleaned.indexOf('{');
+      const endIdx = cleaned.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1) {
+        try {
+          const parsed = JSON.parse(cleaned.substring(startIdx, endIdx + 1));
+          return { ...defaultResult, ...parsed };
+        } catch (jsonErr: any) {
+          console.error(`[Triage Router] Erro de parsing no JSON retornado pela IA na tentativa ${attempt}. Resposta bruta: "${response}". Resposta limpa: "${cleaned}". Erro:`, jsonErr.message);
+          lastError = jsonErr;
+        }
+      } else {
+        console.error(`[Triage Router] Resposta da IA não contém chaves de JSON na tentativa ${attempt}. Resposta bruta: "${response}"`);
+        lastError = new Error('A resposta da IA não contém chaves de JSON.');
+      }
+    } catch (error: any) {
+      console.error(`[Triage Router] Erro ao chamar LLM na tentativa ${attempt}:`, error.message);
+      lastError = error;
     }
-    throw new Error('A resposta da IA não contém um objeto JSON válido.');
-  } catch (error: any) {
-    console.error('[Triage Router] Erro no Agente Validador:', error.message);
-    throw error;
+    
+    // Pequeno atraso antes de tentar novamente
+    if (attempt < 3) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
+
+  throw new Error(`A resposta da IA não contém um objeto JSON válido após 3 tentativas. Último erro: ${lastError?.message}`);
 }
+
 
 // ────────────────────────────────────────────────────────────
 // AGENTE 1: Diálogo com o Paciente
@@ -214,6 +303,8 @@ SUA INSTRUÇÃO PARA ESTA RESPOSTA:
 ${nextActionInstruction}
 
 REGRAS DE CONVERSAÇÃO CRÍTICAS:
+- A instrução em "SUA INSTRUÇÃO PARA ESTA RESPOSTA" tem prioridade ABSOLUTA sobre qualquer regra de FAQ ou outro comportamento. Se a instrução manda coletar um campo específico (ex: "Concordância com as Diretrizes da Clínica"), você deve fazer exatamente isso, e NÃO iniciar outros fluxos da FAQ como solicitação de receita ou alteração de agendamentos.
+- Se o paciente já informou que necessita de medicamento no campo de triagem "medication", NÃO inicie o fluxo de solicitação de receita antecipada da FAQ. Continue normalmente com a coleta dos próximos campos da triagem (como "agreedToTerms"). A solicitação de receita da FAQ só se aplica a pacientes antigos fora da triagem ou após a triagem.
 - NUNCA mencione termos internos como "etapas", "triagem", "campos", "fases", "formulário".
 - NUNCA diga "pulando a etapa da carteirinha" ou similar.
 - Ao pedir dados, varie as palavras e a estrutura da pergunta de forma humana e dinâmica, usando o questionPrompt fornecido como guia de objetivo, sem repeti-lo de forma idêntica e sem ser repetitivo.
@@ -300,6 +391,31 @@ export async function routeTriageMessage(session: TriageSession, messageText: st
       validationResult = await runValidationAgent(history, currentField, triageConfig, session);
       console.log(`[Triage Router] Resultado da validação:`, JSON.stringify(validationResult));
 
+      // Validação Programática Extra (Defesa em Profundidade)
+      if (validationResult && validationResult.isValid && !validationResult.isFAQ && !validationResult.isCorrection) {
+        // 1. Validar campos de escolha (choice)
+        if (currentField.type === 'choice' && currentField.choices) {
+          const rawVal = String(validationResult.extractedValue).trim();
+          const matchedChoice = currentField.choices.find(c => c.toLowerCase() === rawVal.toLowerCase());
+          if (matchedChoice) {
+            validationResult.extractedValue = matchedChoice; // Normaliza para o valor correto
+          } else {
+            validationResult.isValid = false;
+            validationResult.extractedValue = null;
+            validationResult.errorMessage = `Por favor, selecione uma das opções válidas: ${currentField.choices.join(', ')}.`;
+          }
+        }
+        
+        // 2. Validar valor vazio/nulo para campos obrigatórios (required)
+        if (currentField.required && (validationResult.extractedValue === null || validationResult.extractedValue === undefined || String(validationResult.extractedValue).trim() === '')) {
+          validationResult.isValid = false;
+          validationResult.extractedValue = null;
+          if (!validationResult.errorMessage) {
+            validationResult.errorMessage = `Não conseguimos extrair a informação. Por gentileza, informe o campo: ${currentField.label}.`;
+          }
+        }
+      }
+
       if (validationResult.isCorrection && validationResult.correctedFieldKey && validationResult.correctedFieldValue !== null && validationResult.correctedFieldValue !== undefined && validationResult.correctedFieldValue !== '') {
         // Aplica a correção SOMENTE se o novo valor foi fornecido e é válido
         const oldValue = session.data[validationResult.correctedFieldKey];
@@ -338,14 +454,17 @@ export async function routeTriageMessage(session: TriageSession, messageText: st
     if (session.state === 'DONE' && stateBefore !== 'DONE') {
       console.log(`[Triage Router] Triagem concluída para ${session.phone}. Enviando resumo ao médico...`);
       const summary = buildTriageSummary(session, triageConfig);
+      // Desativado a pedido: as triagens concluídas agora são exibidas diretamente na nova aba do painel administrativo
+      /*
       if (config.BOOKING_MODE === 'manual') {
-        const docPhone = config.DOCTOR_PHONE || '';
+        const docPhone = normalizeBrazilianPhone(config.DOCTOR_PHONE || '');
         if (docPhone) {
           sendWhatsAppMessage(docPhone, summary).catch(err => {
             console.error(`[Triage Router] Erro ao enviar resumo de triagem ao médico:`, err);
           });
         }
       }
+      */
     }
 
     return response;

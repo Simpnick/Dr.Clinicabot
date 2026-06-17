@@ -3,7 +3,7 @@
 Este arquivo é o guia vivo de padrões e diretrizes de engenharia de software para o projeto do Chatbot Clínico do Dr. Carlos Tonelli. Ele descreve a arquitetura, regras de codificação, ferramentas de teste e padrões do projeto.
 
 > [!IMPORTANT]
-> **REGRA DE OURO (MÉTODO AKITA):**
+> **REGRA DE OURO**
 > Ao final de cada implementação ou entrega de código, o desenvolvedor/IA DEVE justificar explicitamente como os princípios do Método Akita / Extreme Programming (XP) foram aplicados naquela mudança. Caso contrário, a alteração será considerada inválida e rejeitada.
 
 ## 🚀 Comandos Rápidos e Execução

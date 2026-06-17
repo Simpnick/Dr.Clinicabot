@@ -144,11 +144,8 @@ async function handleIncomingMessage(senderPhone: string, text: string): Promise
     const now = new Date().getTime();
     const diffMinutes = (now - lastUpdate) / (1000 * 60);
 
-    if (
-      (session.state === 'DONE' && diffMinutes > 5) || // 5 minutos após concluída
-      (session.state !== 'DONE' && diffMinutes > 60)   // 1 hora de inatividade no meio da triagem
-    ) {
-      console.log(`[Triage] Resetando sessão inativa de ${cleanPhone} por tempo limite (${diffMinutes.toFixed(1)} minutos).`);
+    if (session.state !== 'DONE' && diffMinutes > 60) {   // 1 hora de inatividade no meio da triagem
+      console.log(`[Triage] Resetando sessão inativa incompleta de ${cleanPhone} por tempo limite (${diffMinutes.toFixed(1)} minutos).`);
       session = new TriageSession(cleanPhone);
       clearChatHistory(cleanPhone);
       saveTriageSession(cleanPhone, session);

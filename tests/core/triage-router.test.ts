@@ -171,7 +171,7 @@ describe('Roteador de Triagem Dual-Agent (Modular)', () => {
 
   it('Deve reverter o estado e retornar mensagem de indisponibilidade se o LLM falhar (Fail-Closed)', async () => {
     const mockGenerate = vi.mocked(generateLLMResponse);
-    mockGenerate.mockRejectedValueOnce(new Error('LM Studio is offline'));
+    mockGenerate.mockRejectedValue(new Error('LM Studio is offline'));
 
     session.state = 'AWAITING_FIELD:name';
     session.data = { someField: 'someValue' };
