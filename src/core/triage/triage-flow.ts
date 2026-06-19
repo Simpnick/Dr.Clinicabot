@@ -74,12 +74,14 @@ export class TriageSession {
   state: string;
   data: Record<string, any>;
   updatedAt: Date;
+  humanTakeover?: boolean;
 
   constructor(phone: string) {
     this.phone = phone;
     this.state = 'START';
     this.data = {};
     this.updatedAt = new Date();
+    this.humanTakeover = false;
   }
 }
 

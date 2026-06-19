@@ -228,3 +228,19 @@
 |------|------------|
 | A5, A6, A7 | Testados sem resetar sessão. Repetir isoladamente. |
 | B2, B4, C2 | Enviados com backtick (copiados do markdown). Dados foram extraídos mesmo assim, mas repetir sem backtick para confirmar. |
+
+---
+
+## 🔒 Implementações Futuras de Segurança (Defesa contra Prompt Injection Avançada)
+
+- **[ ] Limitação do Tamanho de Entrada (Input Length Limiting):** Truncar ou rejeitar entradas do usuário superiores a 1000 caracteres no início da rota de mensagem (`routeTriageMessage`) para evitar tentativas de estouro de contexto e consumo excessivo de tokens.
+- **[ ] Normalização de Whitespace e Caracteres Repetitivos:** Limpar e normalizar múltiplos espaços em branco, quebras de linha e repetições de caracteres especiais antes das chamadas de IA.
+- **[ ] Instruções Robustas de Prompt contra Text Bloating:** Reforçar nas instruções do sistema (`VALIDATION_PROMPT` e `DIALOGUE_PROMPT`) para ignorar blocos longos de dados irrelevantes e focar estritamente na extração pretendida.
+- **[ ] Agente Fiscalizador/Auditor de Alinhamento (Input-Output Guardrail):** Implementar uma segunda camada de decisão (Prompt Fiscalizador) que analisa o input original do paciente juntamente com o output/ação que a IA de diálogo tentou realizar. Caso essa segunda camada detecte desalinhamento (ex: o bot tentando responder fora de sua persona ou executar comandos no banco), a ação é bloqueada no padrão Fail-Closed.
+
+---
+
+## 🚀 Próximas Funcionalidades (Backlog de Negócio)
+
+- **[ ] Agente Assistente de Prontuários (Clinical Summary Agent):** Criar um agente inteligente que consolida todos os dados coletados na triagem em um prontuário médico estruturado e gera resumos clínicos completos para auxiliar o Dr. Carlos Tonelli em sua rotina diária de consultas.
+

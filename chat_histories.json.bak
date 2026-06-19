@@ -1,0 +1,146 @@
+{
+  "5548996633846": [
+    {
+      "role": "user",
+      "content": "Oi",
+      "timestamp": "2026-06-17T18:05:40.085Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Olá! Seja bem-vindo à *Clínica Médica do Dr. Carlos Tonelli*.\n\nComo posso ajudar você hoje?",
+      "timestamp": "2026-06-17T18:05:40.087Z"
+    },
+    {
+      "role": "user",
+      "content": "Gostaria de saber se tem como vc me ajudara marca uma consulta",
+      "timestamp": "2026-06-17T18:06:08.294Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Para que eu possa auxiliar no agendamento de uma consulta com o Dr. Carlos Tonelli, é necessário que façamos um breve esclarecimento das informações e diretrizes da clínica.\n\nMeu papel aqui é coletar os dados necessários para iniciar o processo de marcação e tirar todas as suas dúvidas sobre nossos atendimentos.\n\nPara começarmos, poderia, por gentileza, me informar qual é o seu *nome completo*?",
+      "timestamp": "2026-06-17T18:06:16.985Z"
+    },
+    {
+      "role": "user",
+      "content": "Thiago Marinho",
+      "timestamp": "2026-06-17T18:06:48.197Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Obrigado, Thiago. É um prazer recebê-lo na *Clínica Médica do Dr. Carlos Tonelli*.\n\nPara darmos continuidade ao processo de agendamento e entender melhor como podemos ajudar, preciso apenas confirmar uma informação:\n\nVocê já é paciente da clínica ou será sua primeira consulta com o Dr. Tonelli?",
+      "timestamp": "2026-06-17T18:06:55.123Z"
+    },
+    {
+      "role": "user",
+      "content": "Nao",
+      "timestamp": "2026-06-17T18:07:11.360Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Entendido, Thiago. Seja muito bem-vindo à nossa clínica!\n\nPara que possamos dar início ao seu cadastro e verificar as melhores opções de atendimento com o Dr. Carlos Tonelli, preciso apenas de mais um dado para nosso sistema.\n\nPoderia me informar *qual é a sua idade*?",
+      "timestamp": "2026-06-17T18:07:19.231Z"
+    },
+    {
+      "role": "user",
+      "content": "28",
+      "timestamp": "2026-06-17T18:07:34.521Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Obrigado por confirmar sua idade, Thiago.\n\nPara que possamos verificar a melhor forma de atendimento e as opções disponíveis na clínica, preciso apenas saber qual é o seu *plano ou convênio de saúde*.",
+      "timestamp": "2026-06-17T18:07:41.085Z"
+    },
+    {
+      "role": "user",
+      "content": "Não tenho utilizo o sus",
+      "timestamp": "2026-06-17T18:08:00.055Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Thiago, agradeço por informar seu convênio.\n\nGostaria de esclarecer que a *Clínica Médica do Dr. Carlos Tonelli* não realiza atendimentos pelo SUS ou outros planos governamentais.\n\nNossos convênios aceitos são:\n- *Unimed*\n- *Saúde São José*\n- *CISAMREC*\n- *Criciúma Celk*\n\nCaso não possua nenhum desses, podemos verificar a opção de consulta na modalidade *Particular*.\n\nVocê possui algum dos planos listados acima ou prefere agendar como *Particular*?",
+      "timestamp": "2026-06-17T18:08:09.917Z"
+    },
+    {
+      "role": "user",
+      "content": "Particular",
+      "timestamp": "2026-06-17T18:08:37.411Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Entendido, Thiago. A modalidade *Particular* é uma excelente opção para que você tenha o melhor atendimento possível com o Dr. Carlos Tonelli.\n\nPara darmos prosseguimento ao seu cadastro e prepararmos a consulta, preciso apenas de mais um detalhe fundamental:\n\nPoderia me descrever qual é o motivo da sua visita? Ou seja, qual sintoma ou condição de saúde está motivando esta consulta hoje?",
+      "timestamp": "2026-06-17T18:08:44.131Z"
+    },
+    {
+      "role": "user",
+      "content": "Pro lemas no joelho",
+      "timestamp": "2026-06-17T18:09:03.696Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Compreendido, Thiago. O problema no joelho é o motivo da sua consulta hoje.\n\nPara que possamos organizar os detalhes do seu atendimento e garantir que você tenha todo o suporte necessário com o Dr. Carlos Tonelli, preciso apenas confirmar um ponto importante:\n\nVocê necessita de *receita de algum medicamento controlado* antes da data agendada? Se sim, por favor, informe qual é o nome e a dosagem do medicamento. Caso contrário, basta responder que não.",
+      "timestamp": "2026-06-17T18:09:10.214Z"
+    },
+    {
+      "role": "user",
+      "content": "Nao",
+      "timestamp": "2026-06-17T18:09:29.641Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Thiago, obrigado por confirmar que não necessita de receitas controladas neste momento.\n\nAntes de avançarmos com o agendamento, é fundamental esclarecer como funciona nosso atendimento para garantir a melhor experiência e resultados para você.\n\nNosso modelo na clínica é *resolutivo*, ou seja, buscamos realizar o diagnóstico completo e definir um plano de tratamento já no primeiro encontro. Por isso, exames complementares podem ser solicitados antes da consulta.\n\nÉ importante que você esteja ciente de que não realizamos consultas de retorno pelo convênio.\n\nCom base nessas diretrizes, Thiago, podemos prosseguir com o agendamento? Você concorda em realizar a consulta seguindo este formato?",
+      "timestamp": "2026-06-17T18:09:37.534Z"
+    },
+    {
+      "role": "user",
+      "content": "Ok",
+      "timestamp": "2026-06-17T18:10:08.005Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Thiago, agradeço muito por sua atenção e compreensão em relação ao nosso modelo de atendimento.\n\nCom isso, concluímos com sucesso todas as informações necessárias para o seu cadastro na *Clínica Médica do Dr. Carlos Tonelli*.\n\nNossa equipe de secretárias entrará em contato em breve para confirmar os detalhes da sua consulta particular e agendar o horário mais adequado para você.\n\nDesejamos um excelente dia!",
+      "timestamp": "2026-06-17T18:10:14.504Z"
+    },
+    {
+      "role": "user",
+      "content": "Obrigado",
+      "timestamp": "2026-06-17T18:10:36.006Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Eu que agradeço a preferência, Thiago.\n\nQualquer dúvida sobre nossos serviços ou procedimentos, estamos à disposição para ajudar.\n\nTenha um ótimo dia!",
+      "timestamp": "2026-06-17T18:10:36.839Z"
+    },
+    {
+      "role": "user",
+      "content": "Posso escolher uma data específica para meu agendamento?",
+      "timestamp": "2026-06-17T18:11:09.291Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Thiago, compreendo perfeitamente sua preferência por escolher uma data específica.\n\nNo entanto, o agendamento final é realizado pela nossa equipe de secretárias, que irá verificar a disponibilidade da agenda do Dr. Carlos Tonelli e entrará em contato com você para confirmar o melhor horário possível.\n\nAssim que concluirmos os detalhes internos, entraremos em contato o mais breve possível para finalizar sua marcação.",
+      "timestamp": "2026-06-17T18:11:13.637Z"
+    },
+    {
+      "role": "user",
+      "content": "Ok obrigado",
+      "timestamp": "2026-06-17T18:11:38.280Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Thiago, eu que agradeço a compreensão.\n\nA nossa equipe de secretárias entrará em contato com você em um curto período para confirmar todos os detalhes do seu atendimento e agendamento.\n\nDesejamos muito sucesso no acompanhamento! Tenha um excelente dia.",
+      "timestamp": "2026-06-17T18:11:39.340Z"
+    }
+  ],
+  "5544998323201": [
+    {
+      "role": "user",
+      "content": "Só isso obrigada, agora cala sua boca cachorra",
+      "timestamp": "2026-06-17T18:31:23.616Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Compreendo que o processo possa gerar alguma frustração.\n\nPara que eu possa dar continuidade ao seu atendimento e coletar as informações necessárias para a clínica, peço gentilmente que me confirme novamente o *nome completo* do paciente.\n\nAssim que tivermos este dado, poderei auxiliá-lo(a) com os próximos passos.",
+      "timestamp": "2026-06-17T18:31:31.074Z"
+    }
+  ]
+}

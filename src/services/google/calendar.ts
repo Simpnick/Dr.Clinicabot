@@ -275,3 +275,29 @@ export async function getBusyTimes(startIsoString: string, endIsoString: string)
     return [];
   }
 }
+
+/**
+ * Lista eventos do Google Calendar no intervalo especificado
+ */
+export async function listEvents(timeMin: string, timeMax: string): Promise<CalendarEvent[]> {
+  try {
+    const response = await calendar.events.list({
+      calendarId: CALENDAR_ID,
+      timeMin: timeMin,
+      timeMax: timeMax,
+      singleEvents: true,
+      orderBy: 'startTime'
+    });
+    const items = response.data.items || [];
+    return items.map(item => ({
+      id: item.id || '',
+      summary: item.summary || 'Consulta Sem Título',
+      start: item.start?.dateTime || item.start?.date || '',
+      end: item.end?.dateTime || item.end?.date || '',
+      description: item.description || ''
+    }));
+  } catch (error) {
+    handleCalendarApiError(error, 'listar eventos no Google Calendar');
+    return [];
+  }
+}

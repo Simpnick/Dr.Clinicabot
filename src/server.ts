@@ -3,6 +3,8 @@ import cors from 'cors';
 import * as path from 'path';
 import * as fs from 'fs';
 import axios from 'axios';
+import sqlite3 from 'sqlite3';
+import { open, Database } from 'sqlite';
 
 import { config, validateEnv } from './config/env-manager';
 import { initializeSheets } from './services/google/sheets';
@@ -10,10 +12,45 @@ import { getAuthUrl, oauth2Client, saveCredentials, isGoogleAuthenticated } from
 import { sendWhatsAppMessage, markWhatsAppMessageAsRead, normalizeBrazilianPhone, isWhatsAppConnected, setWhatsAppTokenValid } from './services/whatsapp/client';
 import { TriageSession, loadTriageConfig, saveTriageConfig } from './core/triage/triage-flow';
 import { routeTriageMessage } from './core/triage/triage-router';
+import { getDb } from './services/db/database';
+import { createAppointment, cancelAppointment, listEvents } from './services/google/calendar';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+function basicAuthMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="Clinica Admin"');
+    return res.status(401).send('Acesso não autorizado. Insira o usuário e senha.');
+  }
+
+  try {
+    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+    const user = auth[0];
+    const pass = auth[1];
+
+    const expectedUser = config.ADMIN_USERNAME || 'admin';
+    const expectedPass = config.ADMIN_PASSWORD || 'drtonelli2026';
+
+    if (user === expectedUser && pass === expectedPass) {
+      return next();
+    }
+  } catch (err) {
+    // erro ao decodificar
+  }
+
+  res.setHeader('WWW-Authenticate', 'Basic realm="Clinica Admin"');
+  return res.status(401).send('Credenciais inválidas.');
+}
+
+// Protege as rotas administrativas e APIs contra acessos não autorizados
+app.use('/dashboard', basicAuthMiddleware);
+app.use('/setup', basicAuthMiddleware);
+app.use('/auth/google', basicAuthMiddleware);
+app.use('/auth/google/callback', basicAuthMiddleware);
+app.use('/api', basicAuthMiddleware);
 
 const PORT = config.PORT || 3000;
 const DOCTOR_PHONE = normalizeBrazilianPhone(config.DOCTOR_PHONE || '');
@@ -29,6 +66,135 @@ const doctorAsPatientSet = new Set<string>();
 const webhookLocks = new Map<string, Promise<any>>();
 const accumulatedTexts = new Map<string, string[]>();
 const debounceTimeouts = new Map<string, NodeJS.Timeout>();
+
+let db: Database | null = null;
+
+async function initDatabase() {
+  try {
+    db = await getDb();
+
+    // Tabela de Pacientes (Prontuário)
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS patients (
+        phone TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        age INTEGER NOT NULL,
+        health_plan TEXT NOT NULL,
+        card_number TEXT,
+        complaint TEXT NOT NULL,
+        medication TEXT NOT NULL,
+        agreed_to_terms INTEGER NOT NULL,
+        completed_at TEXT NOT NULL
+      );
+    `);
+
+    // Tabela de Evoluções / Notas de Prontuário
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS patient_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_phone TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        author TEXT,
+        FOREIGN KEY (patient_phone) REFERENCES patients(phone) ON DELETE CASCADE
+      );
+    `);
+
+    // Tabela de Agendamentos
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS appointments (
+        id TEXT PRIMARY KEY,
+        patient_phone TEXT NOT NULL,
+        patient_name TEXT NOT NULL,
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        description TEXT,
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    console.log('[SQLite] Banco de dados inicializado com sucesso.');
+
+    // Migração automática de chat_histories.json para SQLite se a tabela chat_messages estiver vazia
+    const chatHistoryPath = path.join(process.cwd(), 'chat_histories.json');
+    if (fs.existsSync(chatHistoryPath)) {
+      const countResult = await db.get('SELECT COUNT(*) as count FROM chat_messages');
+      if (countResult && countResult.count === 0) {
+        console.log('[SQLite Migration] Iniciando migração de chat_histories.json para SQLite...');
+        try {
+          const fileContent = fs.readFileSync(chatHistoryPath, 'utf8');
+          const histories = JSON.parse(fileContent);
+          
+          let migratedCount = 0;
+          await db.run('BEGIN TRANSACTION;');
+          for (const phone of Object.keys(histories)) {
+            const msgs = histories[phone] || [];
+            for (const msg of msgs) {
+              const role = msg.role === 'model' ? 'assistant' : msg.role;
+              const content = msg.content || (msg.parts && msg.parts[0]?.text) || '';
+              const timestamp = msg.timestamp || new Date().toISOString();
+              
+              await db.run(`
+                INSERT INTO chat_messages (patient_phone, role, content, timestamp)
+                VALUES (?, ?, ?, ?)
+              `, [phone, role, content, timestamp]);
+              migratedCount++;
+            }
+          }
+          await db.run('COMMIT;');
+          console.log(`[SQLite Migration] Migração concluída com sucesso: ${migratedCount} mensagens importadas.`);
+          
+          // Renomeia o arquivo original como backup
+          fs.renameSync(chatHistoryPath, chatHistoryPath + '.bak');
+          console.log(`[SQLite Migration] Arquivo original renomeado para chat_histories.json.bak`);
+        } catch (migErr: any) {
+          await db.run('ROLLBACK;');
+          console.error('[SQLite Migration] Erro durante a migração de histórico de conversas:', migErr);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[SQLite] Erro ao inicializar o banco de dados:', error);
+  }
+}
+
+async function savePatientToDatabase(phone: string, data: any) {
+  if (!db) {
+    console.error('[SQLite] Conexão com o banco de dados não inicializada.');
+    return;
+  }
+  try {
+    const agreedVal = data.agreedToTerms === true || data.agreedToTerms === 'true' || data.agreedToTerms === 1 ? 1 : 0;
+    
+    await db.run(`
+      INSERT INTO patients (phone, name, age, health_plan, card_number, complaint, medication, agreed_to_terms, completed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(phone) DO UPDATE SET
+        name = excluded.name,
+        age = excluded.age,
+        health_plan = excluded.health_plan,
+        card_number = excluded.card_number,
+        complaint = excluded.complaint,
+        medication = excluded.medication,
+        agreed_to_terms = excluded.agreed_to_terms,
+        completed_at = excluded.completed_at;
+    `, [
+      phone,
+      data.name || 'Sem nome',
+      Number(data.age) || 0,
+      data.healthPlan || 'Particular',
+      data.cardNumber || 'Não aplicável',
+      data.complaint || 'Não informada',
+      data.medication || 'Não necessita',
+      agreedVal,
+      new Date().toISOString()
+    ]);
+    console.log(`[SQLite] Paciente ${phone} salvo/atualizado no SQLite com sucesso.`);
+  } catch (error) {
+    console.error(`[SQLite] Erro ao salvar paciente ${phone} no SQLite:`, error);
+  }
+}
+
 
 // Carrega sessões de triagem salvas
 function loadTriageSessions(): Record<string, any> {
@@ -67,47 +233,30 @@ function clearTriageSession(phone: string) {
   }
 }
 
-// Carrega históricos de conversa
-function loadChatHistories(): Record<string, any[]> {
-  try {
-    if (fs.existsSync(CHAT_HISTORIES_FILE)) {
-      const data = fs.readFileSync(CHAT_HISTORIES_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('Erro ao carregar histórico de conversas:', error);
-  }
-  return {};
-}
-
 // Salva histórico de conversa
-function saveChatMessage(phone: string, role: 'user' | 'model' | 'system' | 'assistant', content: string) {
+async function saveChatMessage(phone: string, role: 'user' | 'model' | 'system' | 'assistant', content: string) {
+  if (!db) {
+    console.error('[SQLite] Banco de dados não disponível para salvar mensagem.');
+    return;
+  }
   try {
-    const histories = loadChatHistories();
-    if (!histories[phone]) {
-      histories[phone] = [];
-    }
-    histories[phone].push({
-      role,
-      content,
-      timestamp: new Date().toISOString()
-    });
-    fs.writeFileSync(CHAT_HISTORIES_FILE, JSON.stringify(histories, null, 2), 'utf8');
+    const roleNormalized = role === 'model' ? 'assistant' : role;
+    await db.run(`
+      INSERT INTO chat_messages (patient_phone, role, content, timestamp)
+      VALUES (?, ?, ?, ?)
+    `, [phone, roleNormalized, content, new Date().toISOString()]);
   } catch (error) {
-    console.error('Erro ao salvar mensagem no histórico:', error);
+    console.error('Erro ao salvar mensagem no histórico SQLite:', error);
   }
 }
 
 // Limpa histórico de conversa
-function clearChatHistory(phone: string) {
+async function clearChatHistory(phone: string) {
+  if (!db) return;
   try {
-    const histories = loadChatHistories();
-    if (phone in histories) {
-      delete histories[phone];
-      fs.writeFileSync(CHAT_HISTORIES_FILE, JSON.stringify(histories, null, 2), 'utf8');
-    }
+    await db.run('DELETE FROM chat_messages WHERE patient_phone = ?', [phone]);
   } catch (error) {
-    console.error('Erro ao limpar histórico de conversa:', error);
+    console.error('Erro ao limpar histórico de conversa no SQLite:', error);
   }
 }
 
@@ -121,12 +270,12 @@ async function handleIncomingMessage(senderPhone: string, text: string): Promise
   // Se o paciente digitar 'reiniciar', limpamos a triagem antiga para ele recomeçar
   if (textTrimmed.toLowerCase() === 'reiniciar') {
     clearTriageSession(cleanPhone);
-    clearChatHistory(cleanPhone);
+    await clearChatHistory(cleanPhone);
     const session = new TriageSession(cleanPhone);
     const response = await routeTriageMessage(session, textTrimmed);
     saveTriageSession(cleanPhone, session);
-    saveChatMessage(cleanPhone, 'user', textTrimmed);
-    saveChatMessage(cleanPhone, 'assistant', response);
+    await saveChatMessage(cleanPhone, 'user', textTrimmed);
+    await saveChatMessage(cleanPhone, 'assistant', response);
     await sendWhatsAppMessage(cleanPhone, response);
     return response;
   }
@@ -139,6 +288,13 @@ async function handleIncomingMessage(senderPhone: string, text: string): Promise
   if (sessionData) {
     Object.assign(session, sessionData);
 
+    // Se a conversa foi assumida por um humano, salvamos a mensagem do usuário mas NÃO respondemos com a IA
+    if (session.humanTakeover) {
+      console.log(`[Triage] Conversa de ${cleanPhone} está sob controle humano. Apenas salvando mensagem.`);
+      await saveChatMessage(cleanPhone, 'user', textTrimmed);
+      return 'HUMAN_TAKEOVER';
+    }
+
     // Configura os tempos limite (timeouts) de inatividade para resetar a triagem
     const lastUpdate = new Date(session.updatedAt).getTime();
     const now = new Date().getTime();
@@ -147,13 +303,13 @@ async function handleIncomingMessage(senderPhone: string, text: string): Promise
     if (session.state !== 'DONE' && diffMinutes > 60) {   // 1 hora de inatividade no meio da triagem
       console.log(`[Triage] Resetando sessão inativa incompleta de ${cleanPhone} por tempo limite (${diffMinutes.toFixed(1)} minutos).`);
       session = new TriageSession(cleanPhone);
-      clearChatHistory(cleanPhone);
+      await clearChatHistory(cleanPhone);
       saveTriageSession(cleanPhone, session);
     }
   }
 
   // Registra a mensagem do usuário no histórico de transparência
-  saveChatMessage(cleanPhone, 'user', textTrimmed);
+  await saveChatMessage(cleanPhone, 'user', textTrimmed);
 
   // Executa o passo da triagem na máquina de estados
   const response = await routeTriageMessage(session, textTrimmed);
@@ -161,8 +317,15 @@ async function handleIncomingMessage(senderPhone: string, text: string): Promise
   // Salva o novo estado da triagem
   saveTriageSession(cleanPhone, session);
 
+  // Se a triagem foi concluída nesta mensagem, salva o paciente no SQLite
+  if (session.state === 'DONE') {
+    savePatientToDatabase(cleanPhone, session.data).catch(err => {
+      console.error('[SQLite] Erro ao salvar paciente da triagem concluída:', err);
+    });
+  }
+
   // Registra a resposta da IA no histórico de transparência
-  saveChatMessage(cleanPhone, 'assistant', response);
+  await saveChatMessage(cleanPhone, 'assistant', response);
 
   // Dispara a resposta para o WhatsApp do paciente
   await sendWhatsAppMessage(cleanPhone, response);
@@ -306,6 +469,13 @@ app.post('/webhook/whatsapp', async (req, res) => {
 });
 
 /**
+ * Apresentação UI
+ */
+app.get('/apresentacao', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'src', 'views', 'apresentacao.html'));
+});
+
+/**
  * Setup Admin UI
  */
 app.get('/setup', (req, res) => {
@@ -313,7 +483,7 @@ app.get('/setup', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.redirect('/setup');
+  res.redirect('/apresentacao');
 });
 
 /**
@@ -384,19 +554,44 @@ app.post('/api/config', (req, res) => {
 /**
  * API: Retorna todas as conversas do histórico para o painel de transparência
  */
-app.get('/api/chats', (req, res) => {
+app.get('/api/chats', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
   try {
-    const histories = loadChatHistories();
+    // Busca todas as mensagens ordenadas cronologicamente
+    const messages = await db.all('SELECT * FROM chat_messages ORDER BY timestamp ASC');
     const sessions = loadTriageSessions();
     
+    // Agrupa as mensagens por telefone
+    const histories: Record<string, any[]> = {};
+    for (const m of messages) {
+      if (!histories[m.patient_phone]) {
+        histories[m.patient_phone] = [];
+      }
+      histories[m.patient_phone].push({
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp
+      });
+    }
+
+    // Busca nomes dos pacientes no prontuário e nos agendamentos para manter os nomes nas conversas arquivadas/agendadas
+    const patients = await db.all('SELECT phone, name FROM patients');
+    const patientsMap: Record<string, string> = {};
+    for (const p of patients) {
+      patientsMap[p.phone] = p.name;
+    }
+
+    const appointments = await db.all('SELECT patient_phone, patient_name FROM appointments');
+    const appointmentsMap: Record<string, string> = {};
+    for (const a of appointments) {
+      appointmentsMap[a.patient_phone] = a.patient_name;
+    }
+
     // Agrupa e enriquece os dados das conversas para exibir no front
     const chatList = Object.keys(histories).map(phone => {
       const rawMsgs = histories[phone] || [];
       const normalizedMsgs = rawMsgs.map(msg => {
         let content = msg.content;
-        if (content === undefined && msg.parts && Array.isArray(msg.parts) && msg.parts.length > 0) {
-          content = msg.parts[0]?.text || '';
-        }
         return {
           role: msg.role === 'model' ? 'assistant' : msg.role,
           content: content || '',
@@ -405,7 +600,11 @@ app.get('/api/chats', (req, res) => {
       });
       const session = sessions[phone] || {};
       
-      const patientName = session.data?.name || session.name || 'Paciente Anônimo';
+      const patientName = session.data?.name || 
+                          session.name || 
+                          patientsMap[phone] || 
+                          appointmentsMap[phone] || 
+                          'Paciente Anônimo';
       return {
         phone,
         name: patientName,
@@ -413,7 +612,8 @@ app.get('/api/chats', (req, res) => {
         data: session.data || {},
         lastMessage: normalizedMsgs[normalizedMsgs.length - 1]?.content || '',
         updatedAt: session.updatedAt || new Date().toISOString(),
-        messages: normalizedMsgs
+        messages: normalizedMsgs,
+        humanTakeover: session.humanTakeover || false
       };
     });
 
@@ -472,6 +672,130 @@ app.post('/api/test/toggle-doctor-as-patient', (req, res) => {
 });
 
 /**
+ * Rota GET: Servidor do Painel da Secretária
+ */
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'src', 'views', 'dashboard.html'));
+});
+
+/**
+ * API: Retorna todos os pacientes cadastrados no banco de dados SQLite
+ */
+app.get('/api/patients', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  try {
+    const patients = await db.all('SELECT * FROM patients ORDER BY completed_at DESC');
+    res.json(patients);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Retorna os detalhes de um paciente específico e suas evoluções
+ */
+app.get('/api/patients/:phone', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  const { phone } = req.params;
+  const cleanPhone = normalizeBrazilianPhone(phone);
+  try {
+    const patient = await db.get('SELECT * FROM patients WHERE phone = ?', [cleanPhone]);
+    if (!patient) {
+      return res.status(404).json({ error: 'Paciente não encontrado no prontuário.' });
+    }
+    const notes = await db.all('SELECT * FROM patient_notes WHERE patient_phone = ? ORDER BY created_at DESC', [cleanPhone]);
+    res.json({ patient, notes });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Adiciona uma nota/evolução no prontuário do paciente no SQLite
+ */
+app.post('/api/patients/:phone/notes', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  const { phone } = req.params;
+  const { content, author } = req.body;
+  const cleanPhone = normalizeBrazilianPhone(phone);
+
+  if (!content || content.trim() === '') {
+    return res.status(400).json({ error: 'O conteúdo da nota é obrigatório.' });
+  }
+
+  try {
+    // Verifica se o paciente existe
+    const patient = await db.get('SELECT phone FROM patients WHERE phone = ?', [cleanPhone]);
+    if (!patient) {
+      return res.status(404).json({ error: 'Paciente não cadastrado no prontuário.' });
+    }
+    
+    await db.run(`
+      INSERT INTO patient_notes (patient_phone, content, created_at, author)
+      VALUES (?, ?, ?, ?)
+    `, [
+      cleanPhone,
+      content.trim(),
+      new Date().toISOString(),
+      author || 'Secretária'
+    ]);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Arquiva a triagem de um paciente (salva no SQLite se ainda não estiver e remove das sessões ativas)
+ */
+app.post('/api/archive-triage', async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Telefone é obrigatório.' });
+  const cleanPhone = normalizeBrazilianPhone(phone);
+
+  try {
+    const sessions = loadTriageSessions();
+    const session = sessions[cleanPhone];
+    if (session) {
+      // Salva no SQLite
+      await savePatientToDatabase(cleanPhone, session.data);
+      
+      // Limpa das sessões ativas
+      delete sessions[cleanPhone];
+      fs.writeFileSync(TRIAGE_SESSIONS_FILE, JSON.stringify(sessions, null, 2), 'utf8');
+      console.log(`[Admin] Triagem de ${cleanPhone} arquivada e removida da fila ativa.`);
+    }
+    res.json({ success: true, message: `Triagem de ${cleanPhone} arquivada com sucesso.` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Envia mensagem manual de WhatsApp pelo atendente e insere no histórico
+ */
+app.post('/api/send-whatsapp-manual', async (req, res) => {
+  const { phone, text } = req.body;
+  if (!phone || !text) {
+    return res.status(400).json({ error: 'Telefone e texto são obrigatórios.' });
+  }
+  const cleanPhone = normalizeBrazilianPhone(phone);
+  
+  try {
+    // Registra no histórico de mensagens (assistant)
+    await saveChatMessage(cleanPhone, 'assistant', text.trim());
+    
+    // Envia via API Oficial
+    await sendWhatsAppMessage(cleanPhone, text.trim());
+    
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error(`[Manual Chat] Erro ao enviar mensagem para ${cleanPhone}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * API: Retorna a configuração dinâmica de triagem
  */
 app.get('/api/triage-config', (req, res) => {
@@ -502,10 +826,11 @@ app.post('/api/triage-config', (req, res) => {
 /**
  * API: Limpa TODO o histórico de conversas e sessões de triagem
  */
-app.post('/api/clear-all-data', (req, res) => {
+app.post('/api/clear-all-data', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
   try {
     fs.writeFileSync(TRIAGE_SESSIONS_FILE, '{}', 'utf8');
-    fs.writeFileSync(CHAT_HISTORIES_FILE, '{}', 'utf8');
+    await db.run('DELETE FROM chat_messages');
     console.log('[Admin] Todos os dados de triagem e histórico foram apagados via painel.');
     res.json({ success: true, message: 'Todos os dados foram limpos com sucesso.' });
   } catch (err: any) {
@@ -516,7 +841,8 @@ app.post('/api/clear-all-data', (req, res) => {
 /**
  * API: Limpa dados de um paciente específico por telefone
  */
-app.post('/api/clear-patient-data', (req, res) => {
+app.post('/api/clear-patient-data', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
   try {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ error: 'Telefone é obrigatório.' });
@@ -527,9 +853,7 @@ app.post('/api/clear-patient-data', (req, res) => {
     if (cleanPhone in sessions) delete sessions[cleanPhone];
     fs.writeFileSync(TRIAGE_SESSIONS_FILE, JSON.stringify(sessions, null, 2), 'utf8');
 
-    const histories = loadChatHistories();
-    if (cleanPhone in histories) delete histories[cleanPhone];
-    fs.writeFileSync(CHAT_HISTORIES_FILE, JSON.stringify(histories, null, 2), 'utf8');
+    await db.run('DELETE FROM chat_messages WHERE patient_phone = ?', [cleanPhone]);
 
     console.log(`[Admin] Dados do paciente ${cleanPhone} apagados via painel.`);
     res.json({ success: true, message: `Dados do paciente ${cleanPhone} removidos.` });
@@ -539,14 +863,189 @@ app.post('/api/clear-patient-data', (req, res) => {
 });
 
 /**
+ * API: Ativa/desativa o controle humano da conversa
+ */
+app.post('/api/triage/toggle-takeover', (req, res) => {
+  try {
+    const { phone, active } = req.body;
+    if (!phone) {
+      return res.status(400).json({ error: 'Telefone é obrigatório.' });
+    }
+    const cleanPhone = normalizeBrazilianPhone(phone);
+    const sessions = loadTriageSessions();
+    
+    // Se a sessão não existir, cria uma inicial em START
+    if (!sessions[cleanPhone]) {
+      sessions[cleanPhone] = new TriageSession(cleanPhone);
+    }
+    
+    sessions[cleanPhone].humanTakeover = active === true;
+    sessions[cleanPhone].updatedAt = new Date().toISOString();
+    
+    fs.writeFileSync(TRIAGE_SESSIONS_FILE, JSON.stringify(sessions, null, 2), 'utf8');
+    console.log(`[Triage] Controle humano para ${cleanPhone} alterado para: ${active === true}`);
+    res.json({ success: true, humanTakeover: sessions[cleanPhone].humanTakeover });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Busca e sincroniza consultas do Google Calendar com o banco SQLite local
+ */
+app.get('/api/appointments', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  try {
+    const { start, end } = req.query;
+    if (!start || !end) {
+      return res.status(400).json({ error: 'Parâmetros start e end são obrigatórios (ISO Strings).' });
+    }
+
+    const timeMin = start as string;
+    const timeMax = end as string;
+
+    // 1. Busca eventos da API Oficial do Google Calendar
+    const events = await listEvents(timeMin, timeMax);
+
+    // 2. Sincroniza com o banco de dados SQLite local (Upsert)
+    // Limpa o cache do intervalo selecionado primeiro para evitar duplicados ou excluídos
+    await db.run('DELETE FROM appointments WHERE start_time >= ? AND start_time <= ?', [timeMin, timeMax]);
+
+    for (const event of events) {
+      let phone = '0000000000000';
+      const desc = event.description || '';
+      // Tenta extrair telefone do campo de descrição
+      const phoneMatch = /(?:whatsapp|telefone|fone):\s*\+?(\d+)/i.exec(desc);
+      if (phoneMatch) {
+        phone = phoneMatch[1];
+      } else {
+        const phoneMatchTitle = /\+?(\d{10,13})/g.exec(event.summary || '');
+        if (phoneMatchTitle) {
+          phone = phoneMatchTitle[1];
+        }
+      }
+
+      const name = (event.summary || 'Consulta').replace(/^consulta:\s*/i, '').trim();
+
+      await db.run(`
+        INSERT OR REPLACE INTO appointments (id, patient_phone, patient_name, start_time, end_time, description, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [
+        event.id,
+        phone,
+        name,
+        event.start,
+        event.end,
+        event.description || '',
+        new Date().toISOString()
+      ]);
+    }
+
+    // 3. Retorna os agendamentos salvos localmente
+    const appointments = await db.all(
+      'SELECT * FROM appointments WHERE start_time >= ? AND start_time <= ? ORDER BY start_time ASC',
+      [timeMin, timeMax]
+    );
+    res.json(appointments);
+  } catch (err: any) {
+    console.error('[API Appointments] Erro ao sincronizar consultas:', err);
+    try {
+      // Fallback para cache local se API do Google falhar
+      const appointments = await db!.all(
+        'SELECT * FROM appointments WHERE start_time >= ? AND start_time <= ? ORDER BY start_time ASC',
+        [req.query.start as string, req.query.end as string]
+      );
+      res.json(appointments);
+    } catch (dbErr: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
+
+/**
+ * API: Cria um novo agendamento no Google Calendar e salva no SQLite local
+ */
+app.post('/api/appointments', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  try {
+    const { name, phone, startTime, durationMinutes } = req.body;
+    if (!name || !phone || !startTime) {
+      return res.status(400).json({ error: 'Campos name, phone e startTime são obrigatórios.' });
+    }
+
+    const duration = durationMinutes ? parseInt(durationMinutes) : 30;
+    const cleanPhone = normalizeBrazilianPhone(phone);
+
+    // 1. Cria o compromisso no Google Calendar
+    const googleResult = await createAppointment(name, cleanPhone, startTime, duration);
+
+    const endTime = new Date(new Date(startTime).getTime() + duration * 60 * 1000).toISOString();
+    const description = `Paciente: ${name}\nWhatsApp: ${phone}\nAgendado pelo Painel de Controle.`;
+
+    // 2. Insere no SQLite local
+    await db.run(`
+      INSERT INTO appointments (id, patient_phone, patient_name, start_time, end_time, description, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      googleResult.eventId,
+      cleanPhone,
+      name,
+      startTime,
+      endTime,
+      description,
+      new Date().toISOString()
+    ]);
+
+    // 3. Se houver sessão de triagem ativa concluída (DONE), arquiva automaticamente
+    const sessions = loadTriageSessions();
+    if (sessions[cleanPhone]) {
+      await savePatientToDatabase(cleanPhone, sessions[cleanPhone].data);
+      delete sessions[cleanPhone];
+      fs.writeFileSync(TRIAGE_SESSIONS_FILE, JSON.stringify(sessions, null, 2), 'utf8');
+      console.log(`[Appointments] Triagem ativa de ${cleanPhone} arquivada automaticamente no agendamento.`);
+    }
+
+    res.json({ success: true, appointment: { id: googleResult.eventId, name, phone: cleanPhone, startTime, endTime } });
+  } catch (err: any) {
+    console.error('[API Appointments] Erro ao criar consulta:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Cancela um agendamento no Google Calendar e remove do SQLite local
+ */
+app.delete('/api/appointments/:id', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: 'ID do agendamento é obrigatório.' });
+    }
+
+    // 1. Cancela no Google Calendar
+    await cancelAppointment(id);
+
+    // 2. Remove do SQLite local
+    await db.run('DELETE FROM appointments WHERE id = ?', [id]);
+
+    res.json({ success: true, message: 'Agendamento cancelado com sucesso.' });
+  } catch (err: any) {
+    console.error('[API Appointments] Erro ao cancelar consulta:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * API: Retorna resumo dos dados armazenados (para o painel de diagnóstico)
  */
-app.get('/api/data-summary', (req, res) => {
+app.get('/api/data-summary', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
   try {
     const sessions = loadTriageSessions();
-    const histories = loadChatHistories();
+    const messages = await db.all('SELECT DISTINCT patient_phone FROM chat_messages');
     const sessionCount = Object.keys(sessions).length;
-    const historyCount = Object.keys(histories).length;
+    const historyCount = messages.length;
 
     const sessionList = Object.entries(sessions).map(([phone, s]: [string, any]) => ({
       phone,
@@ -598,6 +1097,9 @@ app.listen(PORT, async () => {
   console.log(`==================================================\n`);
   
   validateEnv();
+  
+  // Inicializa o banco SQLite
+  await initDatabase();
   
   if (isGoogleAuthenticated()) {
     console.log('Google Auth: Inicializando planilhas de controle...');

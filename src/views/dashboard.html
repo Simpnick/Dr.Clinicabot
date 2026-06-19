@@ -1,0 +1,2442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel da Secretaria - Clínica Médica</title>
+  <!-- Google Fonts: Outfit (headings) e Inter (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;850&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ────────────────────────────────────────────────────────
+       Design System & Tokens (Estética Premium Dark Cyan/Teal)
+       ──────────────────────────────────────────────────────── */
+    :root {
+      --bg-main: #0b0f19;
+      --bg-sidebar: #090d16;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-card-hover: rgba(30, 41, 59, 0.5);
+      --bg-input: #05070b;
+      --border-color: rgba(30, 41, 59, 0.8);
+      --border-color-active: #06b6d4;
+      
+      --color-text-main: #f3f4f6;
+      --color-text-muted: #9ca3af;
+      --color-text-dim: #6b7280;
+      
+      --accent-purple: #06b6d4;
+      --accent-purple-glow: rgba(6, 182, 212, 0.15);
+      --accent-emerald: #14b8a6;
+      --accent-emerald-dim: rgba(20, 184, 166, 0.15);
+      --accent-rose: #ef4444;
+      
+      --font-sans: 'Inter', sans-serif;
+      --font-display: 'Outfit', sans-serif;
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      
+      --transition-fast: 0.15s ease;
+      --transition-normal: 0.25s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 40%);
+      color: var(--color-text-main);
+      font-family: var(--font-sans);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Scrollbars customizadas */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f3f46;
+    }
+
+    /* ────────────────────────────────────────────────────────
+       Layout Estrutural Tela Cheia (Sidebar Lateral)
+       ──────────────────────────────────────────────────────── */
+    .app-layout {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    .nav-sidebar {
+      width: 76px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0;
+      flex-shrink: 0;
+    }
+
+    .logo-area {
+      margin-bottom: 20px;
+    }
+    .logo-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 3px solid var(--accent-purple);
+      box-shadow: 0 0 12px var(--accent-purple-glow);
+      background-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .nav-item {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: transparent;
+      border: none;
+      color: var(--color-text-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      transition: var(--transition-fast);
+    }
+    .nav-item:hover {
+      color: var(--color-text-main);
+      background-color: var(--bg-card-hover);
+    }
+    .nav-item.active {
+      color: #ffffff;
+      background-color: var(--accent-purple);
+      box-shadow: 0 4px 12px var(--accent-purple-glow);
+    }
+
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    .nav-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      background-color: var(--accent-rose);
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 99px;
+      border: 2px solid var(--bg-sidebar);
+      line-height: 1;
+    }
+    .nav-item.active .nav-badge {
+      border-color: var(--accent-purple);
+    }
+
+    .nav-footer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+    .nav-settings-btn {
+      color: var(--color-text-dim);
+      transition: var(--transition-fast);
+      display: flex;
+      align-items: center;
+    }
+    .nav-settings-btn:hover {
+      color: var(--color-text-main);
+    }
+    .user-avatar-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-purple), #6366f1);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      border: 2px solid var(--border-color);
+      font-family: var(--font-display);
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 24px 30px;
+      background-color: var(--bg-main);
+    }
+
+    .app-header {
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+    .app-header h1 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 850;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #ffffff, #d4d4d8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .app-header p {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+
+    .badge-live {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      background-color: var(--accent-emerald-dim);
+      color: var(--accent-emerald);
+      -webkit-text-fill-color: initial;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
+    /* Conteúdos de Abas */
+    .tab-content {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      animation: fadeIn 0.3s ease-out;
+    }
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Botões Padrões */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      border: 1px solid transparent;
+      text-decoration: none;
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--color-text-main);
+    }
+    .btn-secondary:hover {
+      background-color: var(--bg-card-hover);
+      border-color: var(--border-color-active);
+    }
+
+    .btn-primary {
+      background-color: var(--accent-purple);
+      color: #ffffff;
+      box-shadow: 0 4px 12px var(--accent-purple-glow);
+    }
+    .btn-primary:hover {
+      background-color: #7c3aed;
+      transform: translateY(-1px);
+    }
+
+    .btn-emerald {
+      background-color: var(--accent-emerald-dim);
+      color: var(--accent-emerald);
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+    .btn-emerald:hover {
+      background-color: rgba(16, 185, 129, 0.25);
+      color: #34d399;
+    }
+
+    /* ────────────────────────────────────────────────────────
+       ABA 1: Fila de Triagem
+       ──────────────────────────────────────────────────────── */
+    .triage-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      flex: 1;
+      min-height: 0;
+    }
+    @media (min-width: 1024px) {
+      .triage-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .queue-panel {
+      background-color: var(--bg-sidebar);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      flex-shrink: 0;
+    }
+    .panel-header h2 {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-text-main);
+    }
+    
+    .panel-header-badge {
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 99px;
+      background-color: #27272a;
+      color: var(--color-text-muted);
+    }
+
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 4px;
+    }
+
+    /* Cartão de Paciente */
+    .patient-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: var(--transition-fast);
+    }
+    .patient-card:hover {
+      border-color: var(--border-color-active);
+      transform: translateY(-1px);
+    }
+
+    .card-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .card-name {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .card-phone {
+      font-size: 12px;
+      color: var(--color-text-dim);
+      margin-top: 2px;
+    }
+    
+    .card-status {
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background-color: var(--accent-purple-glow);
+      color: #c084fc;
+      letter-spacing: 0.3px;
+    }
+    .card-status.done {
+      background-color: var(--accent-emerald-dim);
+      color: var(--accent-emerald);
+    }
+
+    .card-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.03);
+      padding-top: 10px;
+    }
+    .detail-item {
+      color: var(--color-text-muted);
+    }
+    .detail-item strong {
+      color: var(--color-text-main);
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background-color: #27272a;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .progress-bar {
+      height: 100%;
+      background-color: var(--accent-purple);
+      border-radius: 3px;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 8px var(--accent-purple-glow);
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .card-actions .btn {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 11px;
+    }
+
+    /* ────────────────────────────────────────────────────────
+       ABA 2: Chat & ABA 3: Banco de Pacientes (Layouts Compartilhados)
+       ──────────────────────────────────────────────────────── */
+    .chat-layout, .db-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      background-color: var(--bg-sidebar);
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .chat-sidebar, .db-sidebar {
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      background-color: var(--bg-sidebar);
+    }
+    
+    .chat-sidebar-header {
+      padding: 20px 20px 12px 20px;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    
+    .chat-search-box, .db-search-box {
+      padding: 0 20px 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    
+    .chat-search-input, .db-search-input {
+      width: 100%;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: white;
+      font-size: 12.5px;
+      outline: none;
+      transition: var(--transition-fast);
+    }
+    .chat-search-input:focus, .db-search-input:focus {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 0 2px var(--accent-purple-glow);
+    }
+
+    .chat-list, .db-patient-list {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Item de Conversa / Paciente */
+    .chat-item, .db-patient-item {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.01);
+      cursor: pointer;
+      transition: var(--transition-fast);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      text-align: left;
+      background: transparent;
+      border-left: none;
+      border-right: none;
+      border-top: none;
+      color: inherit;
+      width: 100%;
+    }
+    .chat-item:hover, .db-patient-item:hover {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+    .chat-item.active {
+      background-color: var(--accent-purple);
+      color: #ffffff;
+    }
+    .db-patient-item.active {
+      background-color: var(--accent-emerald-dim);
+      color: #ffffff;
+      border-left: 3px solid var(--accent-emerald);
+    }
+
+    .chat-item-avatar-wrapper {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .chat-item-avatar, .db-patient-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background-color: #27272a;
+      color: #e4e4e7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      font-family: var(--font-display);
+    }
+    .chat-item.active .chat-item-avatar {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+    .chat-item-status-dot {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 2px solid var(--bg-sidebar);
+    }
+    .chat-item.active .chat-item-status-dot {
+      border-color: var(--accent-purple);
+    }
+    
+    .chat-item-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .chat-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .chat-item-name, .db-patient-name {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-item-time {
+      font-size: 11px;
+      color: var(--color-text-dim);
+    }
+    .chat-item.active .chat-item-time {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .chat-item-lastmsg {
+      font-size: 12.5px;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-item.active .chat-item-lastmsg {
+      color: rgba(255, 255, 255, 0.85);
+    }
+    .chat-item-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2px;
+    }
+    .chat-item-state {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background-color: var(--accent-purple-glow);
+      color: #c084fc;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .chat-item.active .chat-item-state {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+    .chat-item-state.done {
+      background-color: var(--accent-emerald-dim);
+      color: var(--accent-emerald);
+    }
+    .chat-item.active .chat-item-state.done {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+
+    .db-patient-desc {
+      font-size: 11.5px;
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+
+    /* Janela de Chat Aberta */
+    .chat-main {
+      display: flex;
+      flex-direction: column;
+      background-color: #0c0c0e;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .chat-main-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-sidebar);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    
+    .chat-main-header-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-main-header-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--accent-purple);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      font-family: var(--font-display);
+    }
+
+    .chat-log {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background-color: #0b141a;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .chat-message-row {
+      display: flex;
+      width: 100%;
+      margin-bottom: 2px;
+    }
+    .chat-message-row.user {
+      justify-content: flex-end;
+    }
+    .chat-message-row.assistant {
+      justify-content: flex-start;
+    }
+
+    .chat-bubble {
+      position: relative;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.45;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.15);
+      max-width: 65%;
+      display: inline-block;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .chat-bubble.user {
+      background-color: #005c4b;
+      color: #e9edef;
+      border-top-right-radius: 4px;
+      padding-bottom: 12px;
+      padding-right: 50px;
+    }
+    .chat-bubble.assistant {
+      background-color: #202c33;
+      color: #e9edef;
+      border-top-left-radius: 4px;
+      padding-bottom: 12px;
+      padding-right: 50px;
+    }
+    .chat-bubble-time {
+      position: absolute;
+      bottom: 4px;
+      right: 8px;
+      font-size: 10px;
+      color: #8696a0;
+      user-select: none;
+    }
+
+    .chat-input-area {
+      padding: 20px 24px;
+      background-color: var(--bg-sidebar);
+      border-top: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .chat-input-form {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .chat-input-wrapper {
+      flex: 1;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 4px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: var(--transition-fast);
+    }
+    .chat-input-wrapper:focus-within {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 0 2px var(--accent-purple-glow);
+    }
+    .chat-input-icon {
+      color: var(--color-text-dim);
+      cursor: pointer;
+      transition: var(--transition-fast);
+      display: flex;
+      align-items: center;
+    }
+    .chat-input-icon:hover {
+      color: var(--color-text-muted);
+    }
+    .chat-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 10px 0;
+      color: white;
+      font-size: 13.5px;
+      outline: none;
+    }
+    .chat-input::placeholder {
+      color: #52525b;
+    }
+    .chat-input-send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background-color: var(--accent-purple);
+      color: white;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      box-shadow: 0 4px 12px var(--accent-purple-glow);
+      flex-shrink: 0;
+    }
+    .chat-input-send-btn:hover {
+      background-color: #7c3aed;
+      transform: scale(1.04);
+    }
+
+    /* Switch / Toggle Switch styling */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #27272a;
+      transition: .2s;
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background-color: #e4e4e7;
+      transition: .2s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--accent-purple);
+      border-color: var(--accent-purple);
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+      background-color: #ffffff;
+    }
+
+    .chat-select-prompt {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--color-text-dim);
+      font-size: 14px;
+      gap: 8px;
+      background-color: #080809;
+    }
+
+    /* ────────────────────────────────────────────────────────
+       ABA 3: Prontuários (Banco de Dados SQLite)
+       ──────────────────────────────────────────────────────── */
+    .db-main {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background-color: #0c0c0e;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .prontuario-header {
+      padding: 24px;
+      background-color: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+    .prontuario-title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .prontuario-meta {
+      font-size: 12px;
+      color: var(--color-text-dim);
+      margin-top: 4px;
+    }
+
+    .prontuario-content {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    @media (min-width: 1280px) {
+      .prontuario-content {
+        grid-template-columns: 380px 1fr;
+      }
+    }
+
+    /* Ficha de Dados do Prontuário */
+    .ficha-dados {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-self: flex-start;
+      width: 100%;
+    }
+    .ficha-section-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--color-text-dim);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 6px;
+    }
+    .ficha-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ficha-item {
+      font-size: 12.5px;
+    }
+    .ficha-label {
+      color: var(--color-text-muted);
+      display: block;
+      margin-bottom: 2px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .ficha-val {
+      color: var(--color-text-main);
+      font-weight: 500;
+    }
+
+    /* Linha do Tempo e Evoluções */
+    .evolucao-panel {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .evolucao-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+      padding-left: 16px;
+      border-left: 1px solid var(--border-color);
+      margin-left: 4px;
+    }
+    
+    .timeline-node {
+      position: relative;
+    }
+    .timeline-node::before {
+      content: '';
+      position: absolute;
+      left: -21.5px;
+      top: 5px;
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      background-color: var(--accent-emerald);
+      border: 2px solid var(--bg-card);
+    }
+    
+    .timeline-card {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .timeline-card-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--color-text-dim);
+      margin-bottom: 6px;
+    }
+    .timeline-card-author {
+      font-weight: 600;
+      color: var(--color-text-muted);
+    }
+    .timeline-card-body {
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--color-text-main);
+    }
+
+    .note-input-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 20px;
+    }
+    .note-textarea {
+      width: 100%;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      color: white;
+      font-size: 12.5px;
+      outline: none;
+      resize: none;
+      font-family: var(--font-sans);
+      height: 70px;
+      transition: var(--transition-fast);
+    }
+    .note-textarea:focus {
+      border-color: var(--border-color-active);
+    }
+
+    /* Estilos do Calendário Mensal */
+    .cal-day-cell {
+      aspect-ratio: 16 / 10;
+      min-height: 70px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      text-align: left;
+    }
+    .cal-day-cell:hover {
+      border-color: var(--accent-purple);
+      background-color: var(--bg-card-hover);
+      transform: translateY(-1px);
+    }
+    .cal-day-cell.other-month {
+      opacity: 0.25;
+      cursor: default;
+      pointer-events: none;
+    }
+    .cal-day-cell.today {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+    }
+    .cal-day-cell.selected {
+      border-color: var(--accent-purple);
+      background-color: rgba(6, 182, 212, 0.08);
+      box-shadow: 0 0 0 2px var(--accent-purple-glow);
+    }
+    .cal-day-number {
+      font-size: 13.5px;
+      font-weight: 700;
+      font-family: var(--font-display);
+    }
+    .cal-day-badge-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      min-height: 12px;
+    }
+    .cal-day-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--accent-emerald);
+      box-shadow: 0 0 4px var(--accent-emerald);
+    }
+    .cal-day-dot-more {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      line-height: 1;
+    }
+
+    /* Estilos dos Slots da Tabela de Horários */
+    .slot-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-card);
+      transition: var(--transition-fast);
+    }
+    .slot-row:hover {
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .slot-row.busy {
+      border-left: 4px solid var(--accent-rose);
+      background-color: rgba(239, 68, 68, 0.02);
+    }
+    .slot-row.free {
+      border-left: 4px solid var(--accent-emerald);
+    }
+    .slot-time {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 14px;
+      width: 60px;
+    }
+    .slot-info {
+      flex: 1;
+      margin-left: 12px;
+      font-size: 13px;
+    }
+    .slot-title {
+      font-weight: 600;
+      color: var(--color-text-main);
+    }
+    .slot-subtitle {
+      font-size: 11px;
+      color: var(--color-text-dim);
+      margin-top: 2px;
+    }
+    .slot-action-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- Menu Lateral Esquerdo -->
+    <aside class="nav-sidebar">
+      <div class="logo-area">
+        <div class="logo-icon" title="Clínica Médica">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          </svg>
+        </div>
+      </div>
+      
+      <nav class="nav-menu">
+        <button onclick="switchTab('triage')" id="tab-btn-triage" class="nav-item active" title="Fila de Triagem">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12a9 9 0 1 1-9-9h1"></path>
+          </svg>
+          <span class="nav-badge" id="badge-active-triage">0</span>
+        </button>
+        
+        <button onclick="switchTab('chat')" id="tab-btn-chat" class="nav-item" title="Chat em Tempo Real">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="nav-badge" id="badge-chat-count">0</span>
+        </button>
+        
+        <button onclick="switchTab('db')" id="tab-btn-db" class="nav-item" title="Banco de Pacientes">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="9" x2="15" y2="9"></line>
+            <line x1="9" y1="13" x2="15" y2="13"></line>
+            <line x1="9" y1="17" x2="15" y2="17"></line>
+          </svg>
+          <span class="nav-badge" id="badge-db-count">0</span>
+        </button>
+        
+        <button onclick="switchTab('calendar')" id="tab-btn-calendar" class="nav-item" title="Agenda / Calendário">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </button>
+      </nav>
+      
+      <div class="nav-footer">
+        <a href="/setup" target="_blank" class="nav-settings-btn" title="Configurações do Bot">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </a>
+        <div class="user-avatar-btn" title="Dr. Carlos Tonelli">CT</div>
+      </div>
+    </aside>
+    
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+      
+      <!-- Cabeçalho Superior Dinâmico -->
+      <header class="app-header">
+        <div class="header-info">
+          <h1>
+            <span>Consultório Médico</span>
+            <span class="badge-live">Painel de Atendimento</span>
+          </h1>
+          <p id="app-header-desc">Acompanhe triagens, envie mensagens e acesse os prontuários dos pacientes.</p>
+        </div>
+      </header>
+
+      <!-- ────────────────────────────────────────────────────────
+           CONTEÚDO ABA 1: Fila de Triagem
+           ──────────────────────────────────────────────────────── -->
+      <div id="tab-content-triage" class="tab-content active">
+        <div class="triage-grid">
+          
+          <!-- Fila de Atendimento Ativo -->
+          <div class="queue-panel">
+            <div class="panel-header">
+              <h2>Pacientes em Triagem</h2>
+              <span class="panel-header-badge" id="count-in-progress">0</span>
+            </div>
+            <div id="queue-in-progress" class="queue-list">
+              <div class="empty-state">Nenhum paciente respondendo no momento.</div>
+            </div>
+          </div>
+
+          <!-- Pronto para Agendar -->
+          <div class="queue-panel">
+            <div class="panel-header">
+              <h2>Prontos para Agendamento (Triados)</h2>
+              <span class="panel-header-badge" id="count-completed" style="background-color: var(--accent-emerald-dim); color: var(--accent-emerald);">0</span>
+            </div>
+            <div id="queue-completed" class="queue-list">
+              <div class="empty-state">Nenhum paciente aguardando agendamento.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ────────────────────────────────────────────────────────
+           CONTEÚDO ABA 2: Chat em Tempo Real
+           ──────────────────────────────────────────────────────── -->
+      <div id="tab-content-chat" class="tab-content">
+        <div class="chat-layout">
+          
+          <!-- Lista de Conversas -->
+          <div class="chat-sidebar">
+            <div class="chat-sidebar-header">Mensagens do WhatsApp</div>
+            <div class="chat-search-box">
+              <input type="text" placeholder="Buscar conversa..." class="chat-search-input" id="chat-search" oninput="fetchData()">
+            </div>
+            <div id="chat-list-container" class="chat-list">
+              <div class="empty-state">Nenhuma conversa registrada.</div>
+            </div>
+          </div>
+
+          <!-- Janela de Chat Aberta -->
+          <div class="chat-main" id="chat-main-panel">
+            <!-- Default State: Sem conversa ativa -->
+            <div class="chat-select-prompt" id="chat-select-prompt">
+              <span>💬</span>
+              Selecione uma conversa para visualizar o histórico de mensagens.
+            </div>
+            
+            <!-- State: Conversa ativa -->
+            <div class="chat-main-header" style="display: none;" id="chat-active-header">
+              <div class="chat-main-header-info">
+                <div class="chat-main-header-avatar" id="chat-header-avatar-circle">P</div>
+                <div>
+                  <div class="chat-main-header-name" id="chat-current-name">Paciente</div>
+                  <div class="chat-main-header-phone" id="chat-current-phone">5548...</div>
+                </div>
+              </div>
+              
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <!-- Controle Manual (Human Takeover) -->
+                <div class="takeover-container" style="display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color);">
+                  <span style="font-size: 12px; font-weight: 500; color: var(--color-text-muted);" id="takeover-status-label">Assumir Conversa</span>
+                  <label class="switch">
+                    <input type="checkbox" id="human-takeover-checkbox" onchange="handleTakeoverToggle(this)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                
+                <a href="#" target="_blank" class="btn btn-emerald" id="chat-whatsapp-link">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  Abrir no WhatsApp
+                </a>
+              </div>
+            </div>
+
+            <div class="chat-log" style="display: none;" id="chat-messages-log">
+              <!-- Mensagens geradas dinamicamente -->
+            </div>
+
+            <div class="chat-input-area" style="display: none;" id="chat-input-container">
+              <form onsubmit="enviarMensagemManual(event)" class="chat-input-form">
+                <div class="chat-input-wrapper">
+                  <input type="text" id="chat-input-field" placeholder="Escreva uma mensagem de WhatsApp para o paciente..." class="chat-input" required autocomplete="off">
+                </div>
+                <button type="submit" class="chat-input-send-btn" title="Enviar Mensagem">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </form>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ────────────────────────────────────────────────────────
+           CONTEÚDO ABA 4: Agenda / Calendário
+           ──────────────────────────────────────────────────────── -->
+      <div id="tab-content-calendar" class="tab-content">
+        <div class="chat-layout" style="grid-template-columns: 1fr 400px;">
+          <!-- Painel Esquerdo: Calendário Mensal -->
+          <div class="chat-sidebar" style="width: 100%; border-right: 1px solid var(--border-color); padding: 20px; display: flex; flex-direction: column;">
+            <div class="panel-header" style="border: none; padding-bottom: 0;">
+              <h2>Calendário de Consultas</h2>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <button onclick="changeCalendarMonth(-1)" class="btn btn-secondary" style="padding: 6px 12px; font-size: 14px;">◀</button>
+                <h3 id="cal-month-title" style="font-family: var(--font-display); font-size: 16px; font-weight: 600; min-width: 140px; text-align: center;">--</h3>
+                <button onclick="changeCalendarMonth(1)" class="btn btn-secondary" style="padding: 6px 12px; font-size: 14px;">▶</button>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; margin-top: 20px; font-size: 11px; font-weight: 700; color: var(--color-text-dim); text-transform: uppercase;">
+              <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+            </div>
+            
+            <div id="cal-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 12px; flex: 1; align-content: stretch; overflow-y: auto;">
+              <!-- Gerado dinamicamente -->
+            </div>
+          </div>
+          
+          <!-- Painel Direito: Horários do Dia Selecionado -->
+          <div class="chat-main" style="padding: 20px; display: flex; flex-direction: column;">
+            <div class="panel-header">
+              <h2 id="selected-day-header" style="font-size: 15px; font-family: var(--font-display); font-weight: 600;">Horários de --/--/----</h2>
+            </div>
+            <div id="selected-day-slots-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding-right: 4px;">
+              <!-- Gerado dinamicamente -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ────────────────────────────────────────────────────────
+           CONTEÚDO ABA 3: Banco de Pacientes / Prontuários (SQLite)
+           ──────────────────────────────────────────────────────── -->
+      <div id="tab-content-db" class="tab-content">
+        <div class="db-layout">
+          
+          <!-- Sidebar de Pacientes -->
+          <div class="db-sidebar">
+            <div class="chat-sidebar-header">Banco de Prontuários</div>
+            <div class="db-search-box">
+              <input type="text" placeholder="Buscar paciente por nome..." class="db-search-input" id="db-search" oninput="filtrarPacientes()">
+            </div>
+            <div id="db-patient-list-container" class="db-patient-list">
+              <div class="empty-state">Nenhum paciente cadastrado no banco local.</div>
+            </div>
+          </div>
+
+          <!-- Ficha de Prontuário Clínico -->
+          <div class="db-main" id="db-main-panel">
+            
+            <!-- Default State: Sem prontuário ativo -->
+            <div class="chat-select-prompt" id="db-select-prompt">
+              <span>🗂️</span>
+              Selecione um paciente para carregar o prontuário.
+            </div>
+
+            <!-- Prontuário Clínico Completo -->
+            <div style="display: none;" id="db-prontuario-panel">
+              <div class="prontuario-header">
+                <div>
+                  <h2 class="prontuario-title" id="p-name">Nome do Paciente</h2>
+                  <div class="prontuario-meta" id="p-phone">Telefone: 5548... | Triado em: --/--/----</div>
+                </div>
+                <button onclick="focarConversa()" class="btn btn-secondary">💬 Ir para Conversa</button>
+              </div>
+
+              <div class="prontuario-content">
+                
+                <!-- Dados Gerais -->
+                <div class="ficha-dados">
+                  <div class="ficha-section-title">Dados Gerais</div>
+                  <div class="ficha-list">
+                    <div class="ficha-item">
+                      <span class="ficha-label">Nome Completo</span>
+                      <span class="ficha-val" id="p-val-name">--</span>
+                    </div>
+                    <div class="ficha-item">
+                      <span class="ficha-label">Idade</span>
+                      <span class="ficha-val" id="p-val-age">--</span>
+                    </div>
+                    <div class="ficha-item">
+                      <span class="ficha-label">Plano de Saúde / Convênio</span>
+                      <span class="ficha-val" id="p-val-plan">--</span>
+                    </div>
+                    <div class="ficha-item">
+                      <span class="ficha-label">Número da Carteirinha</span>
+                      <span class="ficha-val" id="p-val-card">--</span>
+                    </div>
+                    <div class="ficha-item">
+                      <span class="ficha-label">Queixa / Motivo Principal</span>
+                      <span class="ficha-val" id="p-val-complaint">--</span>
+                    </div>
+                    <div class="ficha-item">
+                      <span class="ficha-label">Solicitação de Receita</span>
+                      <span class="ficha-val" id="p-val-medication">--</span>
+                    </div>
+                    <div class="ficha-item">
+                      <span class="ficha-label">Acordo com Formato Resolutivo</span>
+                      <span class="ficha-val" id="p-val-terms">--</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Linha de Evolução e Notas -->
+                <div class="evolucao-panel">
+                  <div class="ficha-section-title">Evolução do Prontuário / Notas</div>
+                  
+                  <!-- Nova Nota -->
+                  <form onsubmit="adicionarNotaEvolucao(event)" class="note-input-form">
+                    <textarea placeholder="Escreva uma nova nota, observação de agendamento ou evolução clínica..." class="note-textarea" id="note-text-field" required></textarea>
+                    <button type="submit" class="btn btn-primary" style="align-self: flex-end; padding: 8px 16px;">Salvar Evolução</button>
+                  </form>
+
+                  <!-- Histórico de Notas -->
+                  <div class="evolucao-timeline" id="notes-timeline-container">
+                    <div class="empty-state" style="border: none; padding: 20px 0;">Nenhuma evolução inserida no prontuário.</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ────────────────────────────────────────────────────────
+       LÓGICA JAVASCRIPT
+       ──────────────────────────────────────────────────────── -->
+  <script>
+    let activeTab = 'triage';
+    let rawChatsData = [];
+    let rawPatientsData = [];
+    let currentSelectedChatPhone = null;
+    let currentSelectedPatientPhone = null;
+    let pollingInterval = null;
+
+    // Inicialização
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchData();
+      
+      // Configura Polling a cada 4 segundos
+      pollingInterval = setInterval(fetchData, 4000);
+    });
+
+    // Função de Switch de Abas
+    function switchTab(tabName) {
+      activeTab = tabName;
+      
+      // Atualiza botões
+      document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`tab-btn-${tabName}`).classList.add('active');
+      
+      // Atualiza conteúdo
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(`tab-content-${tabName}`).classList.add('active');
+
+      // Atualiza descrição do cabeçalho de acordo com a aba ativa
+      const descHeader = document.getElementById('app-header-desc');
+      if (tabName === 'triage') {
+        descHeader.innerText = 'Acompanhe as triagens em andamento e gerencie os pacientes prontos para agendamento.';
+      } else if (tabName === 'chat') {
+        descHeader.innerText = 'Visualize o histórico de conversas e envie mensagens manuais de WhatsApp.';
+      } else if (tabName === 'db') {
+        descHeader.innerText = 'Consulte o banco local SQLite de prontuários clínicos dos pacientes triados.';
+      } else if (tabName === 'calendar') {
+        descHeader.innerText = 'Consulte a agenda do Dr. Carlos André Tonelli, verifique a disponibilidade e agende consultas.';
+      }
+
+      if (tabName === 'db') {
+        fetchPatients();
+      } else if (tabName === 'calendar') {
+        fetchCalendarAppointments();
+      }
+    }
+
+    // Busca centralizada de dados
+    async function fetchData() {
+      try {
+        // Busca conversas e triagens ativas
+        const res = await fetch('/api/chats');
+        if (!res.ok) throw new Error('Erro ao buscar conversas');
+        const data = await res.json();
+        rawChatsData = data;
+        
+        renderTriageQueue();
+        renderChatSidebar();
+        
+        if (currentSelectedChatPhone) {
+          // Atualiza as mensagens da conversa aberta
+          const currentChat = rawChatsData.find(c => c.phone === currentSelectedChatPhone);
+          if (currentChat) {
+            renderChatMessages(currentChat);
+            
+            // Sincroniza o switch do takeover com o estado updated do backend
+            const checkbox = document.getElementById('human-takeover-checkbox');
+            if (checkbox) {
+              checkbox.checked = !!currentChat.humanTakeover;
+              updateTakeoverLabel(!!currentChat.humanTakeover);
+            }
+          }
+        }
+
+        // Se a aba Prontuários estiver aberta, atualiza pacientes sem limpar seleção
+        if (activeTab === 'db') {
+          fetchPatients();
+        } else if (activeTab === 'calendar') {
+          fetchCalendarAppointments();
+        }
+      } catch (err) {
+        console.error('Erro na requisição periódica:', err);
+      }
+    }
+
+    // Busca pacientes cadastrados no SQLite
+    async function fetchPatients() {
+      try {
+        const res = await fetch('/api/patients');
+        if (!res.ok) throw new Error('Erro ao buscar pacientes');
+        const data = await res.json();
+        rawPatientsData = data;
+        
+        renderPatientsSidebar();
+        
+        if (currentSelectedPatientPhone) {
+          // Mantém o prontuário atualizado se estiver aberto
+          updateActiveProntuario();
+        }
+      } catch (err) {
+        console.error('Erro ao carregar banco de dados de pacientes:', err);
+      }
+    }
+
+    // ────────────────────────────────────────────────────────
+    // RENDERIZADORES
+    // ────────────────────────────────────────────────────────
+
+    // 1. Fila de Triagem
+    function renderTriageQueue() {
+      const inProgressContainer = document.getElementById('queue-in-progress');
+      const completedContainer = document.getElementById('queue-completed');
+      
+      const inProgressList = rawChatsData.filter(c => c.state !== 'DONE' && c.state !== 'START' && c.state !== 'Desconhecido');
+      const completedList = rawChatsData.filter(c => c.state === 'DONE');
+      
+      // Atualiza Badges
+      document.getElementById('badge-active-triage').innerText = inProgressList.length + completedList.length;
+      document.getElementById('count-in-progress').innerText = inProgressList.length;
+      document.getElementById('count-completed').innerText = completedList.length;
+      
+      // Renderiza Em Andamento
+      if (inProgressList.length === 0) {
+        inProgressContainer.innerHTML = '<div class="empty-state">Nenhum paciente respondendo no momento.</div>';
+      } else {
+        inProgressContainer.innerHTML = inProgressList.map(c => {
+          // Calcula percentual aproximado do progresso
+          const fieldsTotal = 8;
+          let filled = 0;
+          if (c.data) {
+            filled = Object.keys(c.data).length;
+          }
+          const pct = Math.min(Math.round((filled / fieldsTotal) * 100), 95);
+          
+          return `
+            <div class="patient-card">
+              <div class="card-title-row">
+                <div>
+                  <div class="card-name">${c.name || 'Paciente Anônimo'}</div>
+                  <div class="card-phone">+${c.phone}</div>
+                </div>
+                <span class="card-status">Coletando</span>
+              </div>
+              <div class="card-details">
+                <div class="detail-item">Progresso: <strong>${pct}%</strong></div>
+                <div class="detail-item">Campo Atual: <strong>${c.state.replace('AWAITING_FIELD:', '')}</strong></div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar" style="width: ${pct}%"></div>
+              </div>
+              <div class="card-actions">
+                <button onclick="selecionarConversaDirect('${c.phone}')" class="btn btn-primary">
+                  Ver Conversa
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      // Renderiza Concluídos
+      if (completedList.length === 0) {
+        completedContainer.innerHTML = '<div class="empty-state">Nenhum paciente aguardando agendamento.</div>';
+      } else {
+        completedContainer.innerHTML = completedList.map(c => {
+          return `
+            <div class="patient-card">
+              <div class="card-title-row">
+                <div>
+                  <div class="card-name">${c.name || 'Paciente Anônimo'}</div>
+                  <div class="card-phone">+${c.phone}</div>
+                </div>
+                <span class="card-status done">Concluída</span>
+              </div>
+              <div class="card-details">
+                <div class="detail-item">Convênio: <strong>${c.data?.healthPlan || c.data?.health_plan || 'Não informado'}</strong></div>
+                <div class="detail-item">Queixa: <strong>${c.data?.complaint || 'Não informado'}</strong></div>
+              </div>
+              <div class="card-actions">
+                <button onclick="selecionarConversaDirect('${c.phone}')" class="btn btn-primary">
+                  Ver Conversa
+                </button>
+                <button onclick="arquivarTriagem('${c.phone}')" class="btn btn-emerald">
+                  Arquivar & Salvar
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 2. Sidebar de Chats
+    function renderChatSidebar() {
+      const container = document.getElementById('chat-list-container');
+      const activeChats = rawChatsData.filter(c => c.messages && c.messages.length > 0);
+      
+      // Filtra por busca caso tenha algo digitado
+      const query = document.getElementById('chat-search').value.toLowerCase().trim();
+      const filteredChats = activeChats.filter(c => 
+        (c.name || 'Paciente').toLowerCase().includes(query) || 
+        c.phone.includes(query)
+      );
+      
+      // Atualiza Badge
+      document.getElementById('badge-chat-count').innerText = activeChats.length;
+
+      if (filteredChats.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhuma conversa encontrada.</div>';
+        return;
+      }
+
+      container.innerHTML = filteredChats.map(c => {
+        const activeClass = c.phone === currentSelectedChatPhone ? 'active' : '';
+        const stateClass = c.state === 'DONE' ? 'done' : '';
+        let stateLabel = c.state === 'DONE' ? 'Concluída' : 'Em Triagem';
+        if (c.humanTakeover) {
+          stateLabel += ' • Manual';
+        }
+        
+        let lastMsg = c.lastMessage || '';
+        if (lastMsg.length > 40) lastMsg = lastMsg.substring(0, 40) + '...';
+        
+        const name = c.name || 'Paciente';
+        const initials = name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+        const dotColor = c.state === 'DONE' ? '#10b981' : '#f59e0b';
+        
+        return `
+          <button onclick="selecionarConversa('${c.phone}')" class="chat-item ${activeClass}">
+            <div class="chat-item-avatar-wrapper">
+              <div class="chat-item-avatar">${initials}</div>
+              <span class="chat-item-status-dot" style="background-color: ${dotColor}"></span>
+            </div>
+            <div class="chat-item-content">
+              <div class="chat-item-header">
+                <span class="chat-item-name">${name}</span>
+                <span class="chat-item-time">${formatDateShort(c.updatedAt)}</span>
+              </div>
+              <div class="chat-item-lastmsg">${lastMsg}</div>
+              <div class="chat-item-footer">
+                <span class="chat-item-state ${stateClass}">${stateLabel}</span>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // 3. Janela de Mensagens de Chat
+    function renderChatMessages(chat) {
+      const logContainer = document.getElementById('chat-messages-log');
+      
+      if (!chat.messages || chat.messages.length === 0) {
+        logContainer.innerHTML = '<div class="empty-state">Nenhuma mensagem nesta conversa.</div>';
+      } else {
+        logContainer.innerHTML = chat.messages.map(m => {
+          const isUser = m.role === 'user';
+          const roleClass = isUser ? 'user' : 'assistant';
+          return `<div class="chat-message-row ${roleClass}"><div class="chat-bubble ${roleClass}">${m.content}<span class="chat-bubble-time">${formatTime(m.timestamp)}</span></div></div>`;
+        }).join('');
+        
+        // Auto scroll para o final do chat
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
+    }
+
+    // Seleciona conversa da lista de chat
+    function selecionarConversa(phone) {
+      currentSelectedChatPhone = phone;
+      
+      // Atualiza sidebar
+      document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+      
+      const chat = rawChatsData.find(c => c.phone === phone);
+      if (chat) {
+        // Exibe elementos principais
+        document.getElementById('chat-select-prompt').style.display = 'none';
+        document.getElementById('chat-active-header').style.display = 'flex';
+        document.getElementById('chat-messages-log').style.display = 'flex';
+        document.getElementById('chat-input-container').style.display = 'block';
+
+        // Atualiza cabeçalho
+        const patientName = chat.name || 'Paciente';
+        const patientInitials = patientName.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+        
+        document.getElementById('chat-current-name').innerText = patientName;
+        document.getElementById('chat-current-phone').innerText = `WhatsApp: +${chat.phone}`;
+        document.getElementById('chat-whatsapp-link').href = `https://web.whatsapp.com/send?phone=${chat.phone}`;
+        document.getElementById('chat-header-avatar-circle').innerText = patientInitials;
+
+        // Atualiza switch de takeover
+        const checkbox = document.getElementById('human-takeover-checkbox');
+        if (checkbox) {
+          checkbox.checked = !!chat.humanTakeover;
+          updateTakeoverLabel(!!chat.humanTakeover);
+        }
+
+        renderChatMessages(chat);
+        renderChatSidebar(); // Força atualização do active na lista
+      }
+    }
+
+    // Ações de Takeover
+    async function handleTakeoverToggle(checkbox) {
+      if (!currentSelectedChatPhone) return;
+      const active = checkbox.checked;
+      
+      try {
+        const res = await fetch('/api/triage/toggle-takeover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: currentSelectedChatPhone, active })
+        });
+        
+        if (!res.ok) throw new Error('Falha ao atualizar controle manual');
+        
+        const data = await res.json();
+        checkbox.checked = !!data.humanTakeover;
+        updateTakeoverLabel(!!data.humanTakeover);
+        
+        // Recarrega dados de chat
+        fetchData();
+      } catch (err) {
+        alert(err.message);
+        checkbox.checked = !active;
+        updateTakeoverLabel(!active);
+      }
+    }
+
+    function updateTakeoverLabel(isTakeover) {
+      const label = document.getElementById('takeover-status-label');
+      if (label) {
+        if (isTakeover) {
+          label.innerText = 'Conversa Assumida (IA Pausada)';
+          label.style.color = 'var(--accent-purple)';
+        } else {
+          label.innerText = 'Assumir Conversa';
+          label.style.color = 'var(--color-text-muted)';
+        }
+      }
+    }
+
+    // Atalho para ir para conversa a partir de outro local
+    function selecionarConversaDirect(phone) {
+      switchTab('chat');
+      selecionarConversa(phone);
+    }
+
+    // 4. Sidebar de Prontuários (SQLite)
+    function renderPatientsSidebar() {
+      const container = document.getElementById('db-patient-list-container');
+      
+      // Atualiza badge de contagem global do banco
+      document.getElementById('badge-db-count').innerText = rawPatientsData.length;
+
+      if (rawPatientsData.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhum paciente cadastrado no banco local.</div>';
+        return;
+      }
+
+      const query = document.getElementById('db-search').value.toLowerCase().trim();
+      const filtered = rawPatientsData.filter(p => p.name.toLowerCase().includes(query) || p.phone.includes(query));
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhum paciente atende à busca.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(p => {
+        const activeClass = p.phone === currentSelectedPatientPhone ? 'active' : '';
+        const initials = p.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+        return `
+          <button onclick="selecionarPaciente('${p.phone}')" class="db-patient-item ${activeClass}">
+            <div class="chat-item-avatar-wrapper" style="margin-right: 4px;">
+              <div class="chat-item-avatar">${initials}</div>
+            </div>
+            <div class="chat-item-content">
+              <div class="db-patient-name">${p.name}</div>
+              <div class="db-patient-desc">Idade: ${p.age} anos | Convênio: ${p.health_plan}</div>
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Filtra lista de pacientes no sidebar por input
+    function filtrarPacientes() {
+      renderPatientsSidebar();
+    }
+
+    // Seleciona paciente e busca ficha completa
+    async function selecionarPaciente(phone) {
+      currentSelectedPatientPhone = phone;
+      
+      try {
+        const res = await fetch(`/api/patients/${phone}`);
+        if (!res.ok) throw new Error('Falha ao obter dados do paciente');
+        const data = await res.json();
+        
+        // Exibe tela do prontuário
+        document.getElementById('db-select-prompt').style.display = 'none';
+        document.getElementById('db-prontuario-panel').style.display = 'block';
+
+        // Preenche cabeçalho
+        document.getElementById('p-name').innerText = data.patient.name;
+        document.getElementById('p-phone').innerText = `Telefone: +${data.patient.phone} | Triagem Concluída em: ${new Date(data.patient.completed_at).toLocaleString('pt-BR')}`;
+
+        // Preenche ficha de dados
+        document.getElementById('p-val-name').innerText = data.patient.name;
+        document.getElementById('p-val-age').innerText = `${data.patient.age} anos`;
+        document.getElementById('p-val-plan').innerText = data.patient.health_plan;
+        document.getElementById('p-val-card').innerText = data.patient.card_number || 'Não informado';
+        document.getElementById('p-val-complaint').innerText = data.patient.complaint;
+        document.getElementById('p-val-medication').innerText = data.patient.medication;
+        document.getElementById('p-val-terms').innerText = data.patient.agreed_to_terms === 1 ? 'Sim, concorda' : 'Não concorda';
+
+        // Preenche evoluções/notas
+        renderNotesTimeline(data.notes);
+        
+        // Atualiza seleção na sidebar
+        renderPatientsSidebar();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Atalho para ir para a aba de conversa do prontuário ativo
+    function focarConversa() {
+      if (currentSelectedPatientPhone) {
+        selecionarConversaDirect(currentSelectedPatientPhone);
+      }
+    }
+
+    // Atualiza prontuário aberto sem alterar scroll
+    async function updateActiveProntuario() {
+      if (!currentSelectedPatientPhone) return;
+      try {
+        const res = await fetch(`/api/patients/${currentSelectedPatientPhone}`);
+        if (res.ok) {
+          const data = await res.json();
+          renderNotesTimeline(data.notes);
+        }
+      } catch (err) {}
+    }
+
+    // Renderiza a linha do tempo de notas
+    function renderNotesTimeline(notes) {
+      const container = document.getElementById('notes-timeline-container');
+      if (!notes || notes.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="border: none; padding: 20px 0;">Nenhuma evolução inserida no prontuário.</div>';
+        return;
+      }
+
+      container.innerHTML = notes.map(n => `
+        <div class="timeline-node">
+          <div class="timeline-card">
+            <div class="timeline-card-header">
+              <span class="timeline-card-author">${n.author || 'Secretária'}</span>
+              <span>${new Date(n.created_at).toLocaleString('pt-BR')}</span>
+            </div>
+            <div class="timeline-card-body">${n.content}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ────────────────────────────────────────────────────────
+    // AÇÕES E SUBMISSÕES
+    // ────────────────────────────────────────────────────────
+
+    // Enviar mensagem manual de WhatsApp pelo atendente
+    async function enviarMensagemManual(e) {
+      e.preventDefault();
+      if (!currentSelectedChatPhone) return;
+      
+      const input = document.getElementById('chat-input-field');
+      const text = input.value.trim();
+      if (!text) return;
+
+      try {
+        const res = await fetch('/api/send-whatsapp-manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: currentSelectedChatPhone, text })
+        });
+        
+        if (!res.ok) throw new Error('Falha ao enviar mensagem');
+        
+        input.value = '';
+        fetchData(); // Recarrega para exibir na hora
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Adicionar Nota de Evolução no Prontuário SQLite
+    async function adicionarNotaEvolucao(e) {
+      e.preventDefault();
+      if (!currentSelectedPatientPhone) return;
+
+      const textField = document.getElementById('note-text-field');
+      const content = textField.value.trim();
+      if (!content) return;
+
+      try {
+        const res = await fetch(`/api/patients/${currentSelectedPatientPhone}/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content, author: 'Secretária Mariana' })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Erro ao salvar evolução');
+        }
+
+        textField.value = '';
+        updateActiveProntuario(); // Atualiza a timeline
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Arquivar Triagem (Limpar da fila ativa)
+    async function arquivarTriagem(phone) {
+      if (!confirm('Deseja agendar e arquivar esta triagem? O paciente será removido da fila ativa e persistido no Banco de Dados local.')) return;
+      
+      try {
+        const res = await fetch('/api/archive-triage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+
+        if (!res.ok) throw new Error('Erro ao arquivar triagem');
+        
+        fetchData(); // Recarrega dados
+        
+        // Se a conversa aberta no chat for a mesma que foi arquivada, reseta painel
+        if (currentSelectedChatPhone === phone) {
+          currentSelectedChatPhone = null;
+          document.getElementById('chat-select-prompt').style.display = 'flex';
+          document.getElementById('chat-active-header').style.display = 'none';
+          document.getElementById('chat-messages-log').style.display = 'none';
+          document.getElementById('chat-input-container').style.display = 'none';
+        }
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // ────────────────────────────────────────────────────────
+    // CONTROLLER DO CALENDÁRIO & AGENDAMENTO
+    // ────────────────────────────────────────────────────────
+    let currentCalYear = new Date().getFullYear();
+    let currentCalMonth = new Date().getMonth();
+    let selectedCalendarDateStr = null; // formato YYYY-MM-DD
+    let calendarAppointments = [];
+
+    const MONTH_NAMES = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+
+    const WEEKDAYS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+    const DOCTOR_DAILY_SLOTS = [
+      { time: '13:30', quota: 'Criciúma Celk', duration: 10 },
+      { time: '13:40', quota: 'Criciúma Celk', duration: 10 },
+      { time: '13:50', quota: 'Criciúma Celk', duration: 10 },
+      { time: '14:00', quota: 'Criciúma Celk / CISAMREC', duration: 15 },
+      { time: '14:15', quota: 'CISAMREC', duration: 15 },
+      { time: '14:30', quota: 'CISAMREC', duration: 15 },
+      { time: '14:45', quota: 'Unimed Adulto', duration: 30 },
+      { time: '15:00', quota: 'Unimed Criança', duration: 15 },
+      { time: '15:15', quota: 'Unimed Adulto', duration: 30 },
+      { time: '15:30', quota: 'Unimed Criança', duration: 15 },
+      { time: '15:45', quota: 'Unimed Adulto', duration: 30 },
+      { time: '16:00', quota: 'Unimed Criança', duration: 15 },
+      { time: '16:15', quota: 'Saúde São José Adulto', duration: 30 },
+      { time: '16:30', quota: 'Saúde São José Criança', duration: 15 },
+      { time: '16:45', quota: 'Saúde São José Criança', duration: 15 },
+      { time: '17:00', quota: 'Unimed Adulto', duration: 30 },
+      { time: '17:15', quota: 'Unimed Criança', duration: 15 },
+      { time: '17:30', quota: 'Unimed Criança', duration: 15 },
+      { time: '17:45', quota: 'Saúde São José Adulto', duration: 30 },
+      { time: '18:00', quota: 'Unimed Adulto', duration: 30 },
+      { time: '18:15', quota: 'Unimed Criança', duration: 15 },
+      { time: '18:30', quota: 'Saúde São José Criança', duration: 15 },
+      { time: '18:45', quota: 'Unimed Criança', duration: 15 },
+      { time: '19:00', quota: 'Unimed Criança', duration: 15 },
+      { time: '19:15', quota: 'Particular', duration: 15 },
+      { time: '19:30', quota: 'Particular', duration: 15 },
+      { time: '19:45', quota: 'Particular', duration: 15 },
+      { time: '20:00', quota: 'Particular', duration: 15 },
+      { time: '20:15', quota: 'Particular', duration: 15 },
+      { time: '20:30', quota: 'Particular', duration: 15 },
+      { time: '20:45', quota: 'Particular', duration: 15 },
+      { time: '21:00', quota: 'Particular', duration: 15 },
+      { time: '21:15', quota: 'Particular', duration: 15 },
+      { time: '21:30', quota: 'Particular', duration: 15 },
+      { time: '21:45', quota: 'Particular', duration: 15 },
+      { time: '22:00', quota: 'Particular', duration: 15 },
+      { time: '22:15', quota: 'Particular', duration: 15 },
+      { time: '22:30', quota: 'Particular', duration: 15 },
+      { time: '22:45', quota: 'Particular', duration: 15 },
+      { time: '23:00', quota: 'Particular', duration: 15 },
+      { time: '23:15', quota: 'Particular', duration: 15 },
+      { time: '23:30', quota: 'Particular', duration: 15 },
+      { time: '23:45', quota: 'Particular', duration: 15 }
+    ];
+
+    async function fetchCalendarAppointments() {
+      try {
+        const firstDay = new Date(currentCalYear, currentCalMonth, 1);
+        const lastDay = new Date(currentCalYear, currentCalMonth + 1, 0);
+        
+        const startIso = new Date(firstDay.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const endIso = new Date(lastDay.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        
+        const res = await fetch(`/api/appointments?start=${startIso}&end=${endIso}`);
+        if (!res.ok) throw new Error('Falha ao obter compromissos.');
+        
+        calendarAppointments = await res.json();
+        renderCalendarGrid();
+        if (selectedCalendarDateStr) {
+          renderDaySlots(selectedCalendarDateStr);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar agendamentos:', err);
+      }
+    }
+
+    function changeCalendarMonth(offset) {
+      currentCalMonth += offset;
+      if (currentCalMonth < 0) {
+        currentCalMonth = 11;
+        currentCalYear--;
+      } else if (currentCalMonth > 11) {
+        currentCalMonth = 0;
+        currentCalYear++;
+      }
+      fetchCalendarAppointments();
+    }
+
+    function renderCalendarGrid() {
+      document.getElementById('cal-month-title').innerText = `${MONTH_NAMES[currentCalMonth]} ${currentCalYear}`;
+      const grid = document.getElementById('cal-days-grid');
+      grid.innerHTML = '';
+      
+      const firstDay = new Date(currentCalYear, currentCalMonth, 1);
+      const startDayOfWeek = firstDay.getDay();
+      
+      const lastDay = new Date(currentCalYear, currentCalMonth + 1, 0);
+      const totalDays = lastDay.getDate();
+      
+      const prevMonthLastDay = new Date(currentCalYear, currentCalMonth, 0).getDate();
+      
+      for (let i = startDayOfWeek - 1; i >= 0; i--) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-day-cell other-month';
+        cell.innerHTML = `<span class="cal-day-number">${prevMonthLastDay - i}</span>`;
+        grid.appendChild(cell);
+      }
+      
+      const today = new Date();
+      for (let d = 1; d <= totalDays; d++) {
+        const cell = document.createElement('div');
+        const dStr = String(d).padStart(2, '0');
+        const mStr = String(currentCalMonth + 1).padStart(2, '0');
+        const dateStr = `${currentCalYear}-${mStr}-${dStr}`;
+        
+        const isToday = today.getDate() === d && today.getMonth() === currentCalMonth && today.getFullYear() === currentCalYear;
+        const isSelected = selectedCalendarDateStr === dateStr;
+        
+        cell.className = `cal-day-cell ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`;
+        cell.onclick = () => selectCalendarDate(dateStr);
+        
+        const dayApps = calendarAppointments.filter(app => app.start_time.split('T')[0] === dateStr);
+        
+        let dotsHtml = '';
+        if (dayApps.length > 0) {
+          const dots = Math.min(dayApps.length, 3);
+          dotsHtml = '<div class="cal-day-badge-container">';
+          for (let i = 0; i < dots; i++) {
+            dotsHtml += '<span class="cal-day-dot"></span>';
+          }
+          if (dayApps.length > 3) {
+            dotsHtml += `<span class="cal-day-dot-more">+${dayApps.length - 3}</span>`;
+          }
+          dotsHtml += '</div>';
+        }
+        
+        cell.innerHTML = `
+          <span class="cal-day-number">${d}</span>
+          ${dotsHtml}
+        `;
+        grid.appendChild(cell);
+      }
+      
+      const gridCellsCount = startDayOfWeek + totalDays;
+      const nextMonthCells = (7 - (gridCellsCount % 7)) % 7;
+      for (let i = 1; i <= nextMonthCells; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-day-cell other-month';
+        cell.innerHTML = `<span class="cal-day-number">${i}</span>`;
+        grid.appendChild(cell);
+      }
+      
+      if (!selectedCalendarDateStr) {
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if (today.getMonth() === currentCalMonth && today.getFullYear() === currentCalYear) {
+          selectCalendarDate(todayStr);
+        } else {
+          selectCalendarDate(`${currentCalYear}-${String(currentCalMonth + 1).padStart(2, '0')}-01`);
+        }
+      }
+    }
+
+    function selectCalendarDate(dateStr) {
+      selectedCalendarDateStr = dateStr;
+      renderCalendarGrid();
+      renderDaySlots(dateStr);
+    }
+
+    function renderDaySlots(dateStr) {
+      const container = document.getElementById('selected-day-slots-container');
+      const header = document.getElementById('selected-day-header');
+      
+      const dateObj = new Date(`${dateStr}T12:00:00-03:00`);
+      const dayOfWeek = dateObj.getDay();
+      const weekdayName = WEEKDAYS[dayOfWeek];
+      
+      const displayDate = new Date(`${dateStr}T12:00:00`).toLocaleDateString('pt-BR');
+      header.innerText = `Horários de ${weekdayName}, ${displayDate}`;
+      
+      if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
+        container.innerHTML = `<div class="empty-state" style="padding: 40px 0;">O Dr. Carlos Tonelli não realiza atendimentos aos sábados, domingos ou sextas-feiras.</div>`;
+        return;
+      }
+      
+      const dayApps = calendarAppointments.filter(app => app.start_time.split('T')[0] === dateStr);
+      
+      container.innerHTML = DOCTOR_DAILY_SLOTS.map(slot => {
+        const slotStart = new Date(`${dateStr}T${slot.time}:00-03:00`);
+        const slotEnd = new Date(slotStart.getTime() + slot.duration * 60 * 1000);
+        
+        const overlappingApp = dayApps.find(app => {
+          const appStart = new Date(app.start_time);
+          const appEnd = new Date(app.end_time);
+          return slotStart.getTime() < appEnd.getTime() && slotEnd.getTime() > appStart.getTime();
+        });
+        
+        if (overlappingApp) {
+          return `
+            <div class="slot-row busy">
+              <span class="slot-time">${slot.time}</span>
+              <div class="slot-info">
+                <div class="slot-title">${overlappingApp.patient_name}</div>
+                <div class="slot-subtitle">WhatsApp: +${overlappingApp.patient_phone}</div>
+              </div>
+              <button onclick="cancelarConsulta('${overlappingApp.id}')" class="btn btn-secondary slot-action-btn" style="border-color: var(--accent-rose); color: var(--accent-rose);">
+                Desmarcar
+              </button>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="slot-row free">
+              <span class="slot-time">${slot.time}</span>
+              <div class="slot-info">
+                <div class="slot-title" style="color: var(--accent-emerald);">Disponível</div>
+                <div class="slot-subtitle">${slot.quota} (${slot.duration} min)</div>
+              </div>
+              <button onclick="openBookingModal('${dateStr}T${slot.time}:00-03:00', ${slot.duration}, '${slot.quota}')" class="btn btn-primary slot-action-btn">
+                Agendar
+              </button>
+            </div>
+          `;
+        }
+      }).join('');
+    }
+
+    function populateBookingModalPatients() {
+      const select = document.getElementById('booking-patient-select');
+      const completedList = rawChatsData.filter(c => c.state === 'DONE');
+      
+      let html = '<option value="manual">-- Inserir Nome Manuscrito (Manual) --</option>';
+      for (const p of completedList) {
+        html += `<option value="${p.phone}" data-name="${p.name || ''}" data-plan="${p.data?.healthPlan || p.data?.health_plan || 'Particular'}">${p.name || 'Paciente'} (+${p.phone})</option>`;
+      }
+      select.innerHTML = html;
+      
+      document.getElementById('booking-name').value = '';
+      document.getElementById('booking-phone').value = '';
+      document.getElementById('booking-name').readOnly = false;
+      document.getElementById('booking-phone').readOnly = false;
+    }
+    
+    function handleBookingPatientSelect(select) {
+      const option = select.options[select.selectedIndex];
+      if (select.value === 'manual') {
+        document.getElementById('booking-name').value = '';
+        document.getElementById('booking-phone').value = '';
+        document.getElementById('booking-name').readOnly = false;
+        document.getElementById('booking-phone').readOnly = false;
+      } else {
+        document.getElementById('booking-name').value = option.getAttribute('data-name');
+        document.getElementById('booking-phone').value = select.value;
+        document.getElementById('booking-name').readOnly = true;
+        document.getElementById('booking-phone').readOnly = true;
+      }
+    }
+
+    function openBookingModal(timeIso, duration, quota) {
+      document.getElementById('booking-modal').style.display = 'flex';
+      
+      const datePart = timeIso.split('T')[0];
+      const timePart = timeIso.split('T')[1].substring(0, 5);
+      const displayDate = new Date(`${datePart}T12:00:00`).toLocaleDateString('pt-BR');
+      
+      document.getElementById('booking-info-datetime').innerText = `${displayDate} às ${timePart} (${duration} min)`;
+      document.getElementById('booking-info-quota').innerText = quota;
+      document.getElementById('booking-info-time-iso').value = timeIso;
+      document.getElementById('booking-info-duration').value = duration;
+      
+      populateBookingModalPatients();
+    }
+
+    function closeBookingModal() {
+      document.getElementById('booking-modal').style.display = 'none';
+    }
+
+    async function confirmarAgendamentoModal(e) {
+      e.preventDefault();
+      
+      const name = document.getElementById('booking-name').value.trim();
+      const phone = document.getElementById('booking-phone').value.trim();
+      const startTime = document.getElementById('booking-info-time-iso').value;
+      const durationMinutes = document.getElementById('booking-info-duration').value;
+      
+      if (!name || !phone) return;
+      
+      try {
+        const res = await fetch('/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, startTime, durationMinutes })
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Erro ao realizar agendamento');
+        }
+        
+        closeBookingModal();
+        fetchCalendarAppointments();
+        fetchData();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function cancelarConsulta(id) {
+      if (!confirm('Tem certeza que deseja cancelar esta consulta e liberar o horário no Google Calendar?')) return;
+      
+      try {
+        const res = await fetch(`/api/appointments/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Erro ao cancelar consulta');
+        }
+        
+        fetchCalendarAppointments();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // ────────────────────────────────────────────────────────
+    // UTILITÁRIOS
+    // ────────────────────────────────────────────────────────
+    
+    // Formata data em formato curto para lista (ex: "14:23" ou "16/06")
+    function formatDateShort(isoString) {
+      const date = new Date(isoString);
+      const today = new Date();
+      
+      if (date.toDateString() === today.toDateString()) {
+        return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      }
+      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    }
+
+    // Formata hora de mensagem (ex: "14:23")
+    function formatTime(isoString) {
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+  </script>
+
+  <!-- Modal: Novo Agendamento -->
+  <div id="booking-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="width: 480px; background-color: var(--bg-sidebar); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;">
+        <h3 style="font-family: var(--font-display); font-size: 16px; font-weight: 700;">Agendar Consulta</h3>
+        <button onclick="closeBookingModal()" style="background: none; border: none; color: var(--color-text-dim); font-size: 18px; cursor: pointer;">&times;</button>
+      </div>
+      
+      <form onsubmit="confirmarAgendamentoModal(event)">
+        <!-- Tipo de Seleção -->
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 6px;">Paciente</label>
+          <select id="booking-patient-select" onchange="handleBookingPatientSelect(this)" style="width: 100%; background-color: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; color: white; outline: none; font-size: 13px;">
+            <option value="manual">-- Inserir Nome Manuscrito (Manual) --</option>
+          </select>
+        </div>
+        
+        <!-- Campo: Nome -->
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 6px;">Nome Completo</label>
+          <input type="text" id="booking-name" required style="width: 100%; background-color: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; color: white; outline: none; font-size: 13px;">
+        </div>
+        
+        <!-- Campo: Telefone -->
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 6px;">WhatsApp/Telefone</label>
+          <input type="text" id="booking-phone" placeholder="Ex: 5548999999999" required style="width: 100%; background-color: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; color: white; outline: none; font-size: 13px;">
+        </div>
+        
+        <!-- Horário Selecionado Informativo -->
+        <div style="background-color: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 24px; font-size: 12.5px;">
+          <div>Data/Hora: <strong id="booking-info-datetime">--</strong></div>
+          <div style="margin-top: 4px;">Cota/Segmento: <strong id="booking-info-quota">--</strong></div>
+        </div>
+        
+        <input type="hidden" id="booking-info-time-iso">
+        <input type="hidden" id="booking-info-duration">
+        
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" onclick="closeBookingModal()" class="btn btn-secondary">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Confirmar Agendamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

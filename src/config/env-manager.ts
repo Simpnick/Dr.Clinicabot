@@ -18,6 +18,8 @@ export interface EnvConfig {
   WHATSAPP_VERIFY_TOKEN: string;
   GOOGLE_SPREADSHEET_ID: string;
   GOOGLE_CALENDAR_ID: string;
+  ADMIN_USERNAME?: string;
+  ADMIN_PASSWORD?: string;
 }
 
 export const config: EnvConfig = {
@@ -34,6 +36,8 @@ export const config: EnvConfig = {
   WHATSAPP_VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN || '',
   GOOGLE_SPREADSHEET_ID: process.env.GOOGLE_SPREADSHEET_ID || '',
   GOOGLE_CALENDAR_ID: process.env.GOOGLE_CALENDAR_ID || 'primary',
+  ADMIN_USERNAME: process.env.ADMIN_USERNAME || 'admin',
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'drtonelli2026',
 };
 
 // Validação simplificada das chaves fundamentais
