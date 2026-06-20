@@ -1165,6 +1165,26 @@
       padding: 6px 12px;
       font-size: 11px;
     }
+
+    /* Estilos das Solicitações de Agendamento (Modo Semi-Automático) */
+    .blinking-dot {
+      animation: pulse-blue 1.5s infinite;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+    @keyframes pulse-blue {
+      0% { transform: scale(0.95); opacity: 0.6; }
+      50% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 14px #38bdf8; }
+      100% { transform: scale(0.95); opacity: 0.6; }
+    }
+    .badge-blink {
+      animation: badge-pulse 1s infinite alternate;
+      background-color: var(--accent-rose) !important;
+      box-shadow: 0 0 10px var(--accent-rose);
+    }
+    @keyframes badge-pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.2); }
+    }
   </style>
 </head>
 <body>
@@ -1246,6 +1266,22 @@
            CONTEÚDO ABA 1: Fila de Triagem
            ──────────────────────────────────────────────────────── -->
       <div id="tab-content-triage" class="tab-content active">
+        <!-- Seção: Solicitações de Agendamento Pendentes (Semi-Automático) -->
+        <div id="booking-requests-section" style="display: none; margin-bottom: 24px;">
+          <div class="queue-panel" style="height: auto; max-height: 480px;">
+            <div class="panel-header">
+              <h2 style="display: flex; align-items: center; gap: 8px; color: #38bdf8;">
+                <span class="blinking-dot" style="width: 8px; height: 8px; background-color: #38bdf8; border-radius: 50%; display: inline-block;"></span>
+                Solicitações de Agendamento Pendentes (Semi-Automático)
+              </h2>
+              <span class="panel-header-badge" id="count-booking-requests" style="background-color: rgba(56, 189, 248, 0.15); color: #38bdf8;">0</span>
+            </div>
+            <div id="booking-requests-list" class="queue-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; overflow-y: auto; max-height: 400px; padding: 4px;">
+              <!-- Cards das solicitações aparecerão aqui -->
+            </div>
+          </div>
+        </div>
+
         <div class="triage-grid">
           
           <!-- Fila de Atendimento Ativo -->
@@ -1547,6 +1583,13 @@
         
         renderTriageQueue();
         renderChatSidebar();
+        
+        // Busca solicitações de agendamento pendentes (Semi-Automático)
+        const reqsRes = await fetch('/api/booking-requests');
+        if (reqsRes.ok) {
+          const reqsData = await reqsRes.json();
+          renderBookingRequests(reqsData);
+        }
         
         if (currentSelectedChatPhone) {
           // Atualiza as mensagens da conversa aberta
@@ -2272,6 +2315,104 @@
       }).join('');
     }
 
+    let rawBookingRequestsData = [];
+    let currentModifyingBookingRequestId = null;
+
+    function renderBookingRequests(requests) {
+      rawBookingRequestsData = requests;
+      const container = document.getElementById('booking-requests-list');
+      const section = document.getElementById('booking-requests-section');
+      const countBadge = document.getElementById('count-booking-requests');
+      const navBadge = document.getElementById('badge-active-triage');
+      
+      const count = requests.length;
+      countBadge.innerText = count;
+      
+      if (count > 0) {
+        section.style.display = 'block';
+        navBadge.classList.add('badge-blink');
+        
+        container.innerHTML = requests.map(req => {
+          const dateObj = new Date(req.suggested_start);
+          const weekdayName = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' }).format(dateObj);
+          const weekdayCapitalized = weekdayName.charAt(0).toUpperCase() + weekdayName.slice(1);
+          
+          const dateParts = dateObj.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).split(', ');
+          const formattedDate = dateParts[0].substring(0, 5);
+          const formattedTime = dateParts[1].substring(0, 5);
+          
+          return `
+            <div class="patient-card" style="border-color: rgba(56, 189, 248, 0.4);">
+              <div class="card-title-row">
+                <div>
+                  <div class="card-name" style="color: #38bdf8;">${req.patient_name}</div>
+                  <div class="card-phone">+${req.patient_phone} (${req.patient_age} anos)</div>
+                </div>
+                <span class="card-status" style="background-color: rgba(56, 189, 248, 0.15); color: #38bdf8;">Pendente</span>
+              </div>
+              <div class="card-details" style="grid-template-columns: 1fr; gap: 4px;">
+                <div class="detail-item">Convênio: <strong>${req.health_plan}</strong></div>
+                <div class="detail-item">Sugerido: <strong style="color: #38bdf8;">${weekdayCapitalized}, ${formattedDate} às ${formattedTime}</strong></div>
+                <div class="detail-item">Queixa: <strong>${req.complaint}</strong></div>
+                <div class="detail-item">Medicamento: <strong>${req.medication}</strong></div>
+              </div>
+              <div class="card-actions" style="margin-top: 8px; display: flex; gap: 8px;">
+                <button onclick="approveBookingRequest(${req.id})" class="btn btn-emerald" style="padding: 6px 12px; font-size: 11px;">
+                  Confirmar
+                </button>
+                <button onclick="modifyBookingRequest(${req.id}, '${req.suggested_start}', ${req.duration}, '${req.quota}')" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px; border-color: rgba(56, 189, 248, 0.3);">
+                  Modificar
+                </button>
+                <button onclick="rejectBookingRequest(${req.id})" class="btn btn-secondary" style="padding: 6px 12px; font-size: 11px; border-color: var(--accent-rose); color: var(--accent-rose);">
+                  Rejeitar
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        section.style.display = 'none';
+        navBadge.classList.remove('badge-blink');
+        container.innerHTML = '';
+      }
+    }
+
+    async function approveBookingRequest(id) {
+      if (!confirm('Deseja confirmar este agendamento sugerido pela IA?')) return;
+      try {
+        const res = await fetch(`/api/booking-requests/${id}/approve`, { method: 'POST' });
+        if (!res.ok) throw new Error('Erro ao aprovar solicitação');
+        fetchData();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function rejectBookingRequest(id) {
+      if (!confirm('Deseja rejeitar esta solicitação? O paciente receberá uma mensagem via WhatsApp orientando a remarcação.')) return;
+      try {
+        const res = await fetch(`/api/booking-requests/${id}/reject`, { method: 'POST' });
+        if (!res.ok) throw new Error('Erro ao rejeitar solicitação');
+        fetchData();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function modifyBookingRequest(id, suggestedStart, duration, quota) {
+      currentModifyingBookingRequestId = id;
+      const dateStr = suggestedStart.split('T')[0];
+      switchTab('calendar');
+      selectCalendarDate(dateStr);
+      
+      setTimeout(() => {
+        const slotsHeader = document.getElementById('selected-day-header');
+        if (slotsHeader) {
+          slotsHeader.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 300);
+    }
+
     function populateBookingModalPatients() {
       const select = document.getElementById('booking-patient-select');
       const completedList = rawChatsData.filter(c => c.state === 'DONE');
@@ -2281,6 +2422,18 @@
         html += `<option value="${p.phone}" data-name="${p.name || ''}" data-plan="${p.data?.healthPlan || p.data?.health_plan || 'Particular'}">${p.name || 'Paciente'} (+${p.phone})</option>`;
       }
       select.innerHTML = html;
+      
+      if (currentModifyingBookingRequestId) {
+        const req = rawBookingRequestsData.find(r => r.id === currentModifyingBookingRequestId);
+        if (req) {
+          document.getElementById('booking-name').value = req.patient_name;
+          document.getElementById('booking-phone').value = req.patient_phone;
+          document.getElementById('booking-name').readOnly = true;
+          document.getElementById('booking-phone').readOnly = true;
+          select.value = 'manual';
+          return;
+        }
+      }
       
       document.getElementById('booking-name').value = '';
       document.getElementById('booking-phone').value = '';
@@ -2320,6 +2473,7 @@
 
     function closeBookingModal() {
       document.getElementById('booking-modal').style.display = 'none';
+      currentModifyingBookingRequestId = null;
     }
 
     async function confirmarAgendamentoModal(e) {
@@ -2333,11 +2487,20 @@
       if (!name || !phone) return;
       
       try {
-        const res = await fetch('/api/appointments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, phone, startTime, durationMinutes })
-        });
+        let res;
+        if (currentModifyingBookingRequestId) {
+          res = await fetch(`/api/booking-requests/${currentModifyingBookingRequestId}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ startTime, durationMinutes })
+          });
+        } else {
+          res = await fetch('/api/appointments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone, startTime, durationMinutes })
+          });
+        }
         
         if (!res.ok) {
           const errData = await res.json();

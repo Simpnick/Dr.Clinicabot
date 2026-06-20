@@ -13,6 +13,74 @@ import {
 } from './triage-flow';
 import { config } from '../../config/env-manager';
 import { sendWhatsAppMessage, normalizeBrazilianPhone } from '../../services/whatsapp/client';
+import { getDb } from '../../services/db/database';
+import { getFreeSlotsForPatient } from '../scheduler/scheduler-service';
+import { classifyPatient } from '../../config/agenda';
+import { createAppointment } from '../../services/google/calendar';
+
+const WEEKDAYS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+// Categoria e duração de slots
+function getSlotDurationMinutes(category: string): number {
+  switch (category) {
+    case 'CELK_CRICIUMA': return 10;
+    case 'CISAMREC':
+    case 'PARTICULAR':
+    case 'UNIMED_CRIANCA':
+    case 'SSJ_CRIANCA': return 15;
+    case 'UNIMED_ADULTO':
+    case 'SSJ_ADULTO': return 30;
+    default: return 30;
+  }
+}
+
+async function findFirstAvailableSlot(session: TriageSession): Promise<any> {
+  const healthPlan = session.data['healthPlan'] || session.data['health_plan'] || 'Particular';
+  const age = Number(session.data['age'] || 0);
+
+  // Busca vagas a partir de amanhã por 21 dias (3 semanas)
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  for (let i = 0; i < 21; i++) {
+    const checkDate = new Date(tomorrow);
+    checkDate.setDate(checkDate.getDate() + i);
+
+    // Formata YYYY-MM-DD
+    const y = checkDate.getFullYear();
+    const m = String(checkDate.getMonth() + 1).padStart(2, '0');
+    const d = String(checkDate.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
+
+    try {
+      const slots = await getFreeSlotsForPatient(dateStr, healthPlan, age);
+      if (slots && slots.length > 0) {
+        const startIso = slots[0]; // formato: "2026-06-22T13:30:00-03:00"
+        const timeStr = startIso.split('T')[1].substring(0, 5); // "13:30"
+        
+        const category = classifyPatient(healthPlan, age);
+        const duration = getSlotDurationMinutes(category);
+        
+        // Calcula horário final
+        const startTimestamp = new Date(startIso).getTime();
+        const endIso = new Date(startTimestamp + duration * 60 * 1000).toISOString();
+
+        return {
+          dateStr,
+          timeStr,
+          startIso,
+          endIso,
+          duration,
+          quota: category
+        };
+      }
+    } catch (err) {
+      console.error(`[findFirstAvailableSlot] Erro ao buscar vagas para ${dateStr}:`, err);
+    }
+  }
+
+  return null;
+}
 
 const CHAT_HISTORIES_FILE = path.join(process.cwd(), 'chat_histories.json');
 
@@ -361,7 +429,8 @@ async function runDialogueAgent(
   triageConfig: TriageConfig,
   currentField: TriageFieldConfig | null,
   validationResult: ValidationResult | null,
-  isGreeting: boolean
+  isGreeting: boolean,
+  suggestedSlot?: any
 ): Promise<string> {
   const firstName = getFirstName(session.data['name'] || '');
 
@@ -375,7 +444,34 @@ async function runDialogueAgent(
   if (isGreeting) {
     nextActionInstruction = `O paciente enviou apenas uma saudação inicial. Apresente a ${triageConfig.clinicName} de forma breve e pergunte como pode ajudar. NÃO peça nenhum dado de triagem ainda.`;
   } else if (session.state === 'DONE') {
-    nextActionInstruction = `A triagem foi concluída com sucesso. Agradeça o paciente e informe que a equipe de secretárias entrará em contato em breve para confirmar o horário da consulta.`;
+    const bookingMode = config.BOOKING_MODE || 'off';
+    if (bookingMode === 'auto' && suggestedSlot) {
+      const dateParts = suggestedSlot.dateStr.split('-');
+      const formattedDate = `${dateParts[2]}/${dateParts[1]}`;
+      const weekdayIndex = new Date(`${suggestedSlot.dateStr}T12:00:00`).getDay();
+      const weekdayName = WEEKDAYS[weekdayIndex];
+      
+      nextActionInstruction = `A triagem foi concluída com sucesso. O agendamento automático foi realizado.
+Agradeça o paciente pelo nome. Informe EXATAMENTE o seguinte agendamento:
+Consulta agendada para: ${weekdayName}, ${formattedDate} às ${suggestedSlot.timeStr} com o Dr. Carlos Tonelli.
+Destaque que o agendamento foi confirmado e que se ele precisar desmarcar, basta responder a este canal.`;
+    } else if (bookingMode === 'semi' && suggestedSlot) {
+      const dateParts = suggestedSlot.dateStr.split('-');
+      const formattedDate = `${dateParts[2]}/${dateParts[1]}`;
+      const weekdayIndex = new Date(`${suggestedSlot.dateStr}T12:00:00`).getDay();
+      const weekdayName = WEEKDAYS[weekdayIndex];
+
+      nextActionInstruction = `A triagem foi concluída com sucesso. O horário sugerido foi enviado para aprovação da recepção.
+Agradeça o paciente pelo nome. Informe EXATAMENTE o seguinte:
+Enviamos uma solicitação de agendamento para ${weekdayName}, ${formattedDate} às ${suggestedSlot.timeStr} para a nossa recepção confirmar.
+Destaque que a recepção confirmará e enviará uma nova mensagem assim que estiver confirmado.`;
+    } else {
+      if ((bookingMode === 'auto' || bookingMode === 'semi') && !suggestedSlot) {
+        nextActionInstruction = `A triagem foi concluída com sucesso. Como não há horários automáticos disponíveis nas próximas semanas, agradeça o paciente pelo nome e informe que a equipe de recepção entrará em contato em breve para verificar a disponibilidade e agendar a consulta manualmente.`;
+      } else {
+        nextActionInstruction = `A triagem foi concluída com sucesso. Agradeça o paciente pelo nome e informe que a equipe de secretárias entrará em contato em breve para confirmar o horário da consulta.`;
+      }
+    }
   } else if (validationResult?.isFAQ) {
     const nextField = currentField;
     nextActionInstruction = `O paciente fez uma pergunta de dúvida/FAQ. Responda a dúvida de forma clara e direta com base nas regras da clínica. Após responder, convide-o sutilmente a continuar o agendamento e solicite o campo atual ("${nextField?.label}") de forma variada e humanizada a partir da pergunta base: "${nextField?.questionPrompt}"`;
@@ -420,7 +516,7 @@ REGRAS DE CONVERSAÇÃO CRÍTICAS:
 - Você deve solicitar APENAS E EXCLUSIVAMENTE o único campo de informação solicitado na instrução. É terminantemente PROIBIDO pedir mais de uma informação por vez ou adiantar perguntas sobre outros dados futuros (como convênio, carteirinha ou queixa).
 - NUNCA invente ou presuma informações sobre o paciente que ele não tenha dito de forma clara.
 - Responda APENAS ao que foi solicitado na instrução acima. Seja conciso e natural.
-- Você é estritamente um assistente de triagem e esclarecimento de dúvidas da FAQ. Você NUNCA deve oferecer horários ou vagas específicas da agenda da clínica para escolha do paciente, sugerir datas, nem tentar realizar, agendar ou confirmar marcações de consultas. A marcação de datas/horários é efetuada exclusivamente de forma manual pelas secretárias humanas da clínica após a conclusão total da triagem.
+- Você é estritamente um assistente de triagem e esclarecimento de dúvidas da FAQ. Você NUNCA deve oferecer horários ou vagas específicas da agenda da clínica para escolha do paciente, sugerir datas, nem tentar realizar, agendar ou confirmar marcações de consultas (exceto quando instruído explicitamente por "SUA INSTRUÇÃO PARA ESTA RESPOSTA" a confirmar um horário automático ou semi-automático já realizado/solicitado). A marcação padrão de datas/horários é efetuada exclusivamente de forma manual pelas secretárias humanas da clínica após a conclusão total da triagem.
 - Qualquer informação sobre horários de atendimento ou grade de vagas presente na FAQ deve ser usada apenas para responder a perguntas informativas do paciente (ex: 'quais dias o doutor atende?'), mas NUNCA para iniciar uma negociação de horários ou tentar agendar.
 
 FORMATAÇÃO WHATSAPP OBRIGATÓRIA:
@@ -588,8 +684,82 @@ export async function routeTriageMessage(session: TriageSession, messageText: st
     // Obtém o próximo campo após possível avanço
     const nextField = getNextUnfilledField(session, triageConfig);
 
+    let suggestedSlot = null;
+    if (session.state === 'DONE' && stateBefore !== 'DONE') {
+      const bookingMode = config.BOOKING_MODE || 'off';
+      if (bookingMode === 'auto' || bookingMode === 'semi') {
+        console.log(`[Triage Router] Buscando vaga disponível para modo: ${bookingMode}...`);
+        suggestedSlot = await findFirstAvailableSlot(session);
+        if (suggestedSlot) {
+          console.log(`[Triage Router] Vaga encontrada:`, suggestedSlot);
+          if (bookingMode === 'auto') {
+            try {
+              const patientName = session.data['name'] || 'Sem nome';
+              const patientPhone = cleanPhone;
+              const duration = suggestedSlot.duration;
+              const googleResult = await createAppointment(patientName, patientPhone, suggestedSlot.startIso, duration);
+              const db = await getDb();
+              const endTime = suggestedSlot.endIso;
+              const description = `Paciente: ${patientName}\nWhatsApp: ${patientPhone}\nAgendado automaticamente pelo Chatbot de IA.`;
+              await db.run(`
+                INSERT INTO appointments (id, patient_phone, patient_name, start_time, end_time, description, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+              `, [
+                googleResult.eventId,
+                patientPhone,
+                patientName,
+                suggestedSlot.startIso,
+                endTime,
+                description,
+                new Date().toISOString()
+              ]);
+              console.log(`[Triage Router] Agendamento automático criado com sucesso.`);
+            } catch (err: any) {
+              console.error(`[Triage Router] Falha no agendamento automático do Calendar. Mantendo sem slot.`, err);
+              suggestedSlot = null;
+            }
+          } else if (bookingMode === 'semi') {
+            try {
+              const db = await getDb();
+              const patientName = session.data['name'] || 'Sem nome';
+              const patientAge = Number(session.data['age'] || 0);
+              const healthPlan = session.data['healthPlan'] || session.data['health_plan'] || 'Particular';
+              const complaint = session.data['complaint'] || 'Não informada';
+              const medication = session.data['medication'] || 'Não necessita';
+              
+              await db.run(`
+                INSERT INTO booking_requests (
+                  patient_phone, patient_name, patient_age, health_plan, complaint, medication,
+                  suggested_start, suggested_end, quota, duration, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `, [
+                cleanPhone,
+                patientName,
+                patientAge,
+                healthPlan,
+                complaint,
+                medication,
+                suggestedSlot.startIso,
+                suggestedSlot.endIso,
+                suggestedSlot.quota,
+                suggestedSlot.duration,
+                'pending',
+                new Date().toISOString()
+              ]);
+              console.log(`[Triage Router] Solicitação de agendamento semi-automático criada com sucesso.`);
+            } catch (err: any) {
+              console.error(`[Triage Router] Falha ao inserir solicitação semi-automática no SQLite:`, err);
+              suggestedSlot = null;
+            }
+          }
+        } else {
+          console.log(`[Triage Router] Nenhuma vaga disponível encontrada nas próximas 3 semanas.`);
+        }
+      }
+    }
+
     // Executa o Agente de Diálogo para gerar a resposta
-    const response = await runDialogueAgent(history, session, triageConfig, nextField, validationResult, false);
+    const response = await runDialogueAgent(history, session, triageConfig, nextField, validationResult, false, suggestedSlot);
 
     // Se a triagem foi concluída nesta rodada, envia resumo ao médico
     if (session.state === 'DONE' && stateBefore !== 'DONE') {

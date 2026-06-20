@@ -113,6 +113,25 @@ async function initDatabase() {
       );
     `);
 
+    // Tabela de Solicitações de Agendamento (Modo Semi-Automático)
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS booking_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_phone TEXT NOT NULL,
+        patient_name TEXT NOT NULL,
+        patient_age INTEGER NOT NULL,
+        health_plan TEXT NOT NULL,
+        complaint TEXT NOT NULL,
+        medication TEXT NOT NULL,
+        suggested_start TEXT NOT NULL,
+        suggested_end TEXT NOT NULL,
+        quota TEXT NOT NULL,
+        duration INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending',
+        created_at TEXT NOT NULL
+      );
+    `);
+
     console.log('[SQLite] Banco de dados inicializado com sucesso.');
 
     // Migração automática de chat_histories.json para SQLite se a tabela chat_messages estiver vazia
@@ -322,6 +341,11 @@ async function handleIncomingMessage(senderPhone: string, text: string): Promise
     savePatientToDatabase(cleanPhone, session.data).catch(err => {
       console.error('[SQLite] Erro ao salvar paciente da triagem concluída:', err);
     });
+
+    // Se o modo for automático ou semi-automático, arquiva a triagem imediatamente (limpa das sessões ativas)
+    if (config.BOOKING_MODE === 'auto' || config.BOOKING_MODE === 'semi') {
+      clearTriageSession(cleanPhone);
+    }
   }
 
   // Registra a resposta da IA no histórico de transparência
@@ -486,6 +510,16 @@ app.get('/', (req, res) => {
   res.redirect('/apresentacao');
 });
 
+function maskSecret(val: string | undefined): string {
+  if (!val) return '';
+  if (val.length <= 8) return '********';
+  return val.substring(0, 6) + '...' + '********';
+}
+
+function isMasked(val: string): boolean {
+  return val === '********' || (val.includes('...') && val.endsWith('********'));
+}
+
 /**
  * API: Configurações do arquivo .env
  */
@@ -493,11 +527,11 @@ app.get('/api/config', (req, res) => {
   res.json({
     config: {
       WHATSAPP_SIMULATION_MODE: process.env.WHATSAPP_SIMULATION_MODE || 'false',
-      GEMINI_API_KEY: config.GEMINI_API_KEY,
+      GEMINI_API_KEY: maskSecret(config.GEMINI_API_KEY),
       GOOGLE_SPREADSHEET_ID: config.GOOGLE_SPREADSHEET_ID,
       DOCTOR_PHONE: config.DOCTOR_PHONE,
       WHATSAPP_PHONE_NUMBER_ID: config.WHATSAPP_PHONE_NUMBER_ID,
-      WHATSAPP_ACCESS_TOKEN: config.WHATSAPP_ACCESS_TOKEN,
+      WHATSAPP_ACCESS_TOKEN: maskSecret(config.WHATSAPP_ACCESS_TOKEN),
       WHATSAPP_VERIFY_TOKEN: config.WHATSAPP_VERIFY_TOKEN,
       BOOKING_MODE: config.BOOKING_MODE
     },
@@ -524,8 +558,15 @@ app.post('/api/config', (req, res) => {
     }
 
     for (const key in updates) {
-      const regex = new RegExp(`^${key}=.*$`, 'm');
       const val = updates[key];
+
+      // Se for uma chave sensível mascarada, ignora a atualização para preservar o valor atual no .env
+      if ((key === 'GEMINI_API_KEY' || key === 'WHATSAPP_ACCESS_TOKEN') && isMasked(val)) {
+        console.log(`[Config] Ignorando atualização de valor mascarado para a chave: ${key}`);
+        continue;
+      }
+
+      const regex = new RegExp(`^${key}=.*$`, 'm');
       
       if (regex.test(envContent)) {
         envContent = envContent.replace(regex, `${key}=${val}`);
@@ -541,7 +582,10 @@ app.post('/api/config', (req, res) => {
     }
 
     if ('WHATSAPP_ACCESS_TOKEN' in updates || 'WHATSAPP_PHONE_NUMBER_ID' in updates) {
-      setWhatsAppTokenValid(null);
+      // Somente invalida o token se o token enviado não for mascarado
+      if (!('WHATSAPP_ACCESS_TOKEN' in updates && isMasked(updates.WHATSAPP_ACCESS_TOKEN))) {
+        setWhatsAppTokenValid(null);
+      }
     }
 
     fs.writeFileSync(envPath, envContent, 'utf8');
@@ -1032,6 +1076,125 @@ app.delete('/api/appointments/:id', async (req, res) => {
     res.json({ success: true, message: 'Agendamento cancelado com sucesso.' });
   } catch (err: any) {
     console.error('[API Appointments] Erro ao cancelar consulta:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Retorna todas as solicitações de agendamento pendentes (Semi-Automático)
+ */
+app.get('/api/booking-requests', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  try {
+    const requests = await db.all("SELECT * FROM booking_requests WHERE status = 'pending' ORDER BY created_at DESC");
+    res.json(requests);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Aprova uma solicitação de agendamento, criando o evento no Google Calendar e SQLite local
+ */
+app.post('/api/booking-requests/:id/approve', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  const { id } = req.params;
+  const { startTime, durationMinutes } = req.body;
+  
+  try {
+    const request = await db.get("SELECT * FROM booking_requests WHERE id = ?", [id]);
+    if (!request) {
+      return res.status(404).json({ error: 'Solicitação de agendamento não encontrada.' });
+    }
+
+    const finalStartTime = startTime || request.suggested_start;
+    const finalDuration = durationMinutes ? parseInt(durationMinutes, 10) : request.duration;
+    const finalEndTime = new Date(new Date(finalStartTime).getTime() + finalDuration * 60 * 1000).toISOString();
+    
+    const cleanPhone = normalizeBrazilianPhone(request.patient_phone);
+
+    // 1. Cria compromisso no Google Calendar
+    const googleResult = await createAppointment(request.patient_name, cleanPhone, finalStartTime, finalDuration);
+
+    const description = `Paciente: ${request.patient_name}\nWhatsApp: ${request.patient_phone}\nAgendado pelo Painel de Controle (Aprovação de IA).`;
+
+    // 2. Insere na tabela local de appointments
+    await db.run(`
+      INSERT INTO appointments (id, patient_phone, patient_name, start_time, end_time, description, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      googleResult.eventId,
+      cleanPhone,
+      request.patient_name,
+      finalStartTime,
+      finalEndTime,
+      description,
+      new Date().toISOString()
+    ]);
+
+    // 3. Salva o paciente no SQLite
+    const patientData = {
+      name: request.patient_name,
+      age: request.patient_age,
+      healthPlan: request.health_plan,
+      cardNumber: 'Não aplicável',
+      complaint: request.complaint,
+      medication: request.medication,
+      agreedToTerms: true
+    };
+    await savePatientToDatabase(cleanPhone, patientData);
+
+    // 4. Atualiza status da solicitação
+    await db.run("UPDATE booking_requests SET status = 'approved' WHERE id = ?", [id]);
+
+    // 5. Envia mensagem de confirmação de agendamento ao paciente
+    const dateObj = new Date(finalStartTime);
+    const weekdayName = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' }).format(dateObj);
+    const weekdayCapitalized = weekdayName.charAt(0).toUpperCase() + weekdayName.slice(1);
+    
+    const dateParts = dateObj.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).split(', ');
+    const formattedDate = dateParts[0].substring(0, 5);
+    const formattedTime = dateParts[1].substring(0, 5);
+
+    const confirmMsg = `Olá *${request.patient_name}*, sua triagem foi concluída com sucesso! Agendamos sua consulta para *${weekdayCapitalized}*, *${formattedDate}* às *${formattedTime}* com o Dr. Carlos Tonelli. Caso necessite desmarcar, por favor responda.`;
+
+    await sendWhatsAppMessage(cleanPhone, confirmMsg);
+    await saveChatMessage(cleanPhone, 'assistant', confirmMsg);
+
+    res.json({ success: true, message: 'Solicitação aprovada e consulta agendada.' });
+  } catch (err: any) {
+    console.error('[API Approve Booking] Erro ao aprovar solicitação:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Rejeita uma solicitação de agendamento e notifica o paciente
+ */
+app.post('/api/booking-requests/:id/reject', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  const { id } = req.params;
+
+  try {
+    const request = await db.get("SELECT * FROM booking_requests WHERE id = ?", [id]);
+    if (!request) {
+      return res.status(404).json({ error: 'Solicitação de agendamento não encontrada.' });
+    }
+
+    const cleanPhone = normalizeBrazilianPhone(request.patient_phone);
+
+    // 1. Atualiza status da solicitação
+    await db.run("UPDATE booking_requests SET status = 'rejected' WHERE id = ?", [id]);
+
+    // 2. Envia mensagem de remarcação via WhatsApp ao paciente
+    const rejectMsg = `Olá *${request.patient_name}*, identificamos que o horário sugerido para sua consulta não está mais disponível ou precisou ser alterado. Por gentileza, aguarde um momento que nossa recepção entrará em contato para encontrar o melhor horário para você.`;
+    
+    await sendWhatsAppMessage(cleanPhone, rejectMsg);
+    await saveChatMessage(cleanPhone, 'assistant', rejectMsg);
+
+    res.json({ success: true, message: 'Solicitação rejeitada com sucesso.' });
+  } catch (err: any) {
+    console.error('[API Reject Booking] Erro ao rejeitar solicitação:', err);
     res.status(500).json({ error: err.message });
   }
 });

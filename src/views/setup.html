@@ -255,6 +255,16 @@
                   <label class="block text-xs font-medium text-zinc-400">Token de Verificação do Webhook</label>
                   <input type="text" id="WHATSAPP_VERIFY_TOKEN" name="WHATSAPP_VERIFY_TOKEN" placeholder="ex: clinica_verify_token" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
                 </div>
+
+                <!-- Modo de Agendamento da IA -->
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-medium text-zinc-400">Modo de Agendamento da IA</label>
+                  <select id="BOOKING_MODE" name="BOOKING_MODE" class="w-full bg-zinc-950 border border-zinc-800 rounded px-3.5 py-2 text-xs focus:border-zinc-600 focus:outline-none text-zinc-200">
+                    <option value="auto">Totalmente Automático (IA agenda no Google Calendar)</option>
+                    <option value="semi">Semi-Automático (IA sugere horário e secretária confirma)</option>
+                    <option value="off">Manual / Desativado (Secretária agenda do zero no painel)</option>
+                  </select>
+                </div>
               </div>
             </div>
 

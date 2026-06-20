@@ -11,7 +11,7 @@ export interface EnvConfig {
   LLM_MODEL_NAME: string;
   LLM_API_KEY: string;
   GEMINI_API_KEY: string;
-  BOOKING_MODE: 'manual' | 'auto';
+  BOOKING_MODE: 'auto' | 'semi' | 'off';
   DOCTOR_PHONE: string;
   WHATSAPP_PHONE_NUMBER_ID: string;
   WHATSAPP_ACCESS_TOKEN: string;
@@ -29,7 +29,7 @@ export const config: EnvConfig = {
   LLM_MODEL_NAME: process.env.LLM_MODEL_NAME || 'gemma-3',
   LLM_API_KEY: process.env.LLM_API_KEY || '',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-  BOOKING_MODE: (process.env.BOOKING_MODE as 'manual' | 'auto') || 'manual',
+  BOOKING_MODE: (process.env.BOOKING_MODE as 'auto' | 'semi' | 'off') || 'off',
   DOCTOR_PHONE: process.env.DOCTOR_PHONE || '',
   WHATSAPP_PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
   WHATSAPP_ACCESS_TOKEN: process.env.WHATSAPP_ACCESS_TOKEN || '',
