@@ -1482,6 +1482,155 @@
       background-color: var(--accent-purple);
       color: white;
     }
+
+    /* ────────────────────────────────────────────────────────
+       ESTILOS DESKTOP CANVAS & JANELAS FLUTUANTES (Modular)
+       ──────────────────────────────────────────────────────── */
+    #desktop-canvas {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      height: calc(100vh - 80px); /* Descontando o Header principal */
+      overflow: hidden;
+      background-color: var(--bg-main);
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .window-panel {
+      position: absolute;
+      background-color: var(--bg-sidebar);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      min-width: 250px;
+      min-height: 150px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      z-index: 10;
+    }
+    .window-panel:focus-within,
+    .window-panel.active {
+      border-color: var(--accent-purple);
+      box-shadow: 0 10px 25px rgba(139, 92, 246, 0.15);
+    }
+
+    .window-header {
+      background-color: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .window-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--color-text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .window-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .window-control-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: inline-block;
+      transition: opacity 0.15s ease;
+    }
+    .window-control-btn:hover {
+      opacity: 0.8;
+    }
+    .window-control-btn.close {
+      background-color: var(--accent-rose);
+    }
+    .window-control-btn.minimize {
+      background-color: #eab308;
+    }
+    .window-control-btn.maximize {
+      background-color: var(--accent-emerald);
+    }
+
+    .window-body {
+      padding: 14px;
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Resize Handles */
+    .resize-handle {
+      position: absolute;
+      background: transparent;
+      z-index: 100;
+    }
+    .resize-handle.r { top: 0; right: 0; width: 6px; height: 100%; cursor: e-resize; }
+    .resize-handle.l { top: 0; left: 0; width: 6px; height: 100%; cursor: w-resize; }
+    .resize-handle.b { bottom: 0; left: 0; width: 100%; height: 6px; cursor: s-resize; }
+    .resize-handle.t { top: 0; left: 0; width: 100%; height: 6px; cursor: n-resize; }
+    .resize-handle.se { bottom: 0; right: 0; width: 10px; height: 10px; cursor: se-resize; }
+    .resize-handle.sw { bottom: 0; left: 0; width: 10px; height: 10px; cursor: sw-resize; }
+    .resize-handle.ne { top: 0; right: 0; width: 10px; height: 10px; cursor: ne-resize; }
+    .resize-handle.nw { top: 0; left: 0; width: 10px; height: 10px; cursor: nw-resize; }
+
+    /* Barra de tarefas / Dock inferior para janelas minimizadas */
+    #desktop-taskbar {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(18, 24, 36, 0.85);
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(10px);
+      padding: 6px 12px;
+      border-radius: 20px;
+      display: flex;
+      gap: 8px;
+      z-index: 999;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #desktop-taskbar:empty {
+      opacity: 0;
+      transform: translateX(-50%) translateY(20px);
+      pointer-events: none;
+    }
+    .taskbar-item {
+      background-color: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--color-text-main);
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition-fast);
+    }
+    .taskbar-item:hover {
+      background-color: var(--accent-purple-glow);
+      border-color: var(--accent-purple);
+    }
   </style>
 </head>
 <body>
@@ -1499,13 +1648,23 @@
       </div>
       
       <nav class="nav-menu">
-        <button onclick="switchTab('workspace')" id="tab-btn-workspace" class="nav-item" title="Área de Trabalho do Médico (Workspace)">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+        <button onclick="organizarLayout()" id="tab-btn-layout" class="nav-item" title="Organizar Janelas na Tela (Tiling)">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9"></rect>
+            <rect x="14" y="3" width="7" height="5"></rect>
+            <rect x="14" y="12" width="7" height="9"></rect>
+            <rect x="3" y="16" width="7" height="5"></rect>
           </svg>
         </button>
 
-        <button onclick="switchTab('triage')" id="tab-btn-triage" class="nav-item active" title="Fila de Triagem">
+        <button onclick="toggleWindow('win-queue')" id="tab-btn-queue" class="nav-item active" title="Fila de Espera Virtual">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          </svg>
+          <span class="nav-badge" id="badge-active-queue">0</span>
+        </button>
+
+        <button onclick="toggleWindow('win-triage')" id="tab-btn-triage" class="nav-item" title="Fila de Triagem (WhatsApp)">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 11l3 3L22 4"></path>
             <path d="M21 12a9 9 0 1 1-9-9h1"></path>
@@ -1513,14 +1672,14 @@
           <span class="nav-badge" id="badge-active-triage">0</span>
         </button>
         
-        <button onclick="switchTab('chat')" id="tab-btn-chat" class="nav-item" title="Chat em Tempo Real">
+        <button onclick="toggleWindow('win-chat')" id="tab-btn-chat" class="nav-item" title="Chat em Tempo Real">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
           <span class="nav-badge" id="badge-chat-count">0</span>
         </button>
         
-        <button onclick="switchTab('db')" id="tab-btn-db" class="nav-item" title="Banco de Pacientes">
+        <button onclick="toggleWindow('win-prontuario')" id="tab-btn-prontuario" class="nav-item" title="Banco de Prontuários">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="9" y1="9" x2="15" y2="9"></line>
@@ -1530,7 +1689,7 @@
           <span class="nav-badge" id="badge-db-count">0</span>
         </button>
         
-        <button onclick="switchTab('calendar')" id="tab-btn-calendar" class="nav-item" title="Agenda / Calendário">
+        <button onclick="toggleWindow('win-agenda')" id="tab-btn-agenda" class="nav-item" title="Agenda / Calendário">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -1568,378 +1727,213 @@
       <!-- ────────────────────────────────────────────────────────
            CONTEÚDO ABA 1: Fila de Triagem
            ──────────────────────────────────────────────────────── -->
-      <div id="tab-content-triage" class="tab-content active">
-        <!-- Seção: Solicitações de Agendamento Pendentes (Semi-Automático) -->
-        <div id="booking-requests-section" style="display: none; margin-bottom: 24px;">
-          <div class="queue-panel" style="height: auto; max-height: 480px;">
-            <div class="panel-header">
-              <h2 style="display: flex; align-items: center; gap: 8px; color: #38bdf8;">
-                <span class="blinking-dot" style="width: 8px; height: 8px; background-color: #38bdf8; border-radius: 50%; display: inline-block;"></span>
-                Solicitações de Agendamento Pendentes (Semi-Automático)
-              </h2>
-              <span class="panel-header-badge" id="count-booking-requests" style="background-color: rgba(56, 189, 248, 0.15); color: #38bdf8;">0</span>
+      <!-- Desktop Canvas para Janelas Flutuantes -->
+      <div id="desktop-canvas">
+        
+        <!-- Janela 1: Fila de Triagem (WhatsApp) -->
+        <div class="window-panel" id="win-triage" style="top: 15px; left: 15px; width: 380px; height: 410px;">
+          <div class="window-header">
+            <div class="window-title">📋 Triagens & Agendamentos (WhatsApp)</div>
+            <div class="window-controls">
+              <button onclick="minimizeWindow('win-triage')" class="window-control-btn minimize" title="Minimizar"></button>
+              <button onclick="maximizeWindow('win-triage')" class="window-control-btn maximize" title="Maximizar"></button>
+              <button onclick="closeWindow('win-triage')" class="window-control-btn close" title="Fechar"></button>
             </div>
-            <div id="booking-requests-list" class="queue-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; overflow-y: auto; max-height: 400px; padding: 4px;">
-              <!-- Cards das solicitações aparecerão aqui -->
+          </div>
+          <div class="window-body" style="padding: 10px;">
+            <!-- Seção: Solicitações de Agendamento Pendentes -->
+            <div id="booking-requests-section" style="display: none; margin-bottom: 12px; flex-shrink: 0;">
+              <div class="queue-panel" style="height: auto; max-height: 150px; overflow-y: auto; padding: 10px;">
+                <div class="queue-header" style="padding-bottom: 6px;">
+                  <h2 style="font-size: 12px;">⚠️ Solicitações Pendentes <span class="badge" id="badge-booking-requests-count">0</span></h2>
+                </div>
+                <div class="queue-list" id="booking-requests-container" style="display: flex; flex-direction: column; gap: 6px;"></div>
+              </div>
+            </div>
+            <!-- Fila de Triagem Real -->
+            <div class="queue-panel" style="flex: 1; display: flex; flex-direction: column; min-height: 0; height: 100%;">
+              <div class="queue-header" style="flex-shrink: 0; padding-bottom: 8px;">
+                <h2 style="font-size: 12px;">💬 Triagens Ativas <span class="badge" id="badge-active-triage-panel">0</span></h2>
+              </div>
+              <div class="queue-list" id="triage-queue-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; min-height: 0;">
+                <div class="empty-state">Nenhuma triagem ativa.</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="triage-grid">
-          
-          <!-- Fila de Atendimento Ativo -->
-          <div class="queue-panel">
-            <div class="panel-header">
-              <h2>Pacientes em Triagem</h2>
-              <span class="panel-header-badge" id="count-in-progress">0</span>
-            </div>
-            <div id="queue-in-progress" class="queue-list">
-              <div class="empty-state">Nenhum paciente respondendo no momento.</div>
+        <!-- Janela 2: Chat em Tempo Real -->
+        <div class="window-panel" id="win-chat" style="top: 15px; left: 410px; width: 490px; height: 410px;">
+          <div class="window-header">
+            <div class="window-title">💬 Chat WhatsApp & Modo Manual</div>
+            <div class="window-controls">
+              <button onclick="minimizeWindow('win-chat')" class="window-control-btn minimize" title="Minimizar"></button>
+              <button onclick="maximizeWindow('win-chat')" class="window-control-btn maximize" title="Maximizar"></button>
+              <button onclick="closeWindow('win-chat')" class="window-control-btn close" title="Fechar"></button>
             </div>
           </div>
-
-          <!-- Pronto para Agendar -->
-          <div class="queue-panel">
-            <div class="panel-header">
-              <h2>Prontos para Agendamento (Triados)</h2>
-              <span class="panel-header-badge" id="count-completed" style="background-color: var(--accent-emerald-dim); color: var(--accent-emerald);">0</span>
-            </div>
-            <div id="queue-completed" class="queue-list">
-              <div class="empty-state">Nenhum paciente aguardando agendamento.</div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ────────────────────────────────────────────────────────
-           CONTEÚDO ABA 2: Chat em Tempo Real
-           ──────────────────────────────────────────────────────── -->
-      <div id="tab-content-chat" class="tab-content">
-        <div class="chat-layout">
-          
-          <!-- Lista de Conversas -->
-          <div class="chat-sidebar">
-            <div class="chat-sidebar-header">Mensagens do WhatsApp</div>
-            <div class="chat-search-box">
-              <input type="text" placeholder="Buscar conversa..." class="chat-search-input" id="chat-search" oninput="fetchData()">
-            </div>
-            <div id="chat-list-container" class="chat-list">
-              <div class="empty-state">Nenhuma conversa registrada.</div>
-            </div>
-          </div>
-
-          <!-- Janela de Chat Aberta -->
-          <div class="chat-main" id="chat-main-panel">
-            <!-- Default State: Sem conversa ativa -->
-            <div class="chat-select-prompt" id="chat-select-prompt">
-              <span>💬</span>
-              Selecione uma conversa para visualizar o histórico de mensagens.
-            </div>
-            
-            <!-- State: Conversa ativa -->
-            <div class="chat-main-header" style="display: none;" id="chat-active-header">
-              <div class="chat-main-header-info">
-                <div class="chat-main-header-avatar" id="chat-header-avatar-circle">P</div>
-                <div>
-                  <div class="chat-main-header-name" id="chat-current-name">Paciente</div>
-                  <div class="chat-main-header-phone" id="chat-current-phone">5548...</div>
+          <div class="window-body" style="padding: 0;">
+            <div class="chat-layout" style="height: 100%; border: none; border-radius: 0;">
+              <!-- Sidebar do Chat (Lista de conversas) -->
+              <div class="chat-sidebar" style="width: 170px; border-right: 1px solid var(--border-color);">
+                <div class="chat-sidebar-header" style="padding: 8px; font-size: 10px;">Conversas</div>
+                <div class="chat-search-box" style="padding: 4px 8px;">
+                  <input type="text" placeholder="Buscar..." class="chat-search-input" id="chat-search" oninput="filtrarChats()" style="font-size: 10.5px; padding: 5px;">
                 </div>
-              </div>
-              
-              <div style="display: flex; align-items: center; gap: 16px;">
-                <!-- Controle Manual (Human Takeover) -->
-                <div class="takeover-container" style="display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color);">
-                  <span style="font-size: 12px; font-weight: 500; color: var(--color-text-muted);" id="takeover-status-label">Assumir Conversa</span>
-                  <label class="switch">
-                    <input type="checkbox" id="human-takeover-checkbox" onchange="handleTakeoverToggle(this)">
-                    <span class="slider"></span>
-                  </label>
-                </div>
-                
-                <a href="#" target="_blank" class="btn btn-emerald" id="chat-whatsapp-link">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                  Abrir no WhatsApp
-                </a>
-                <button onclick="limparConversaAtual()" class="btn btn-secondary" style="border-color: rgba(239, 68, 68, 0.4); color: #ef4444;" title="Limpar Histórico e Sessão">
-                  🗑️ Limpar Conversa
-                </button>
-              </div>
-            </div>
-
-            <div class="chat-log" style="display: none;" id="chat-messages-log">
-              <!-- Mensagens geradas dinamicamente -->
-            </div>
-
-            <div class="chat-input-area" style="display: none;" id="chat-input-container">
-              <form onsubmit="enviarMensagemManual(event)" class="chat-input-form">
-                <div class="chat-input-wrapper">
-                  <input type="text" id="chat-input-field" placeholder="Escreva uma mensagem de WhatsApp para o paciente..." class="chat-input" required autocomplete="off">
-                </div>
-                <button type="submit" class="chat-input-send-btn" title="Enviar Mensagem">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                  </svg>
-                </button>
-              </form>
-            </div>
-
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ────────────────────────────────────────────────────────
-           CONTEÚDO ABA 4: Agenda / Calendário
-           ──────────────────────────────────────────────────────── -->
-      <div id="tab-content-calendar" class="tab-content">
-        <div class="chat-layout" style="grid-template-columns: 1fr 400px;">
-          <!-- Painel Esquerdo: Calendário Mensal -->
-          <div class="chat-sidebar" style="width: 100%; border-right: 1px solid var(--border-color); padding: 20px; display: flex; flex-direction: column;">
-            <div class="panel-header" style="border: none; padding-bottom: 0;">
-              <h2>Calendário de Consultas</h2>
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <button onclick="changeCalendarMonth(-1)" class="btn btn-secondary" style="padding: 6px 12px; font-size: 14px;">◀</button>
-                <h3 id="cal-month-title" style="font-family: var(--font-display); font-size: 16px; font-weight: 600; min-width: 140px; text-align: center;">--</h3>
-                <button onclick="changeCalendarMonth(1)" class="btn btn-secondary" style="padding: 6px 12px; font-size: 14px;">▶</button>
-              </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; margin-top: 20px; font-size: 11px; font-weight: 700; color: var(--color-text-dim); text-transform: uppercase;">
-              <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
-            </div>
-            
-            <div id="cal-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 12px; flex: 1; align-content: stretch; overflow-y: auto;">
-              <!-- Gerado dinamicamente -->
-            </div>
-          </div>
-          
-          <!-- Painel Direito: Horários do Dia Selecionado -->
-          <div class="chat-main" style="padding: 20px; display: flex; flex-direction: column;">
-            <div class="panel-header">
-              <h2 id="selected-day-header" style="font-size: 15px; font-family: var(--font-display); font-weight: 600;">Horários de --/--/----</h2>
-            </div>
-            <div id="selected-day-slots-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding-right: 4px;">
-              <!-- Gerado dinamicamente -->
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ────────────────────────────────────────────────────────
-           CONTEÚDO ABA 3: Banco de Pacientes / Prontuários (SQLite)
-           ──────────────────────────────────────────────────────── -->
-      <div id="tab-content-db" class="tab-content">
-        <div class="db-layout">
-          
-          <!-- Sidebar de Pacientes -->
-          <div class="db-sidebar">
-            <div class="chat-sidebar-header">Banco de Prontuários</div>
-            <div class="db-search-box">
-              <input type="text" placeholder="Buscar paciente por nome..." class="db-search-input" id="db-search" oninput="filtrarPacientes()">
-            </div>
-            <div id="db-patient-list-container" class="db-patient-list">
-              <div class="empty-state">Nenhum paciente cadastrado no banco local.</div>
-            </div>
-          </div>
-
-          <!-- Ficha de Prontuário Clínico -->
-          <div class="db-main" id="db-main-panel">
-            
-            <!-- Default State: Sem prontuário ativo -->
-            <div class="chat-select-prompt" id="db-select-prompt">
-              <span>🗂️</span>
-              Selecione um paciente para carregar o prontuário.
-            </div>
-
-            <!-- Prontuário Clínico Completo -->
-            <div style="display: none;" id="db-prontuario-panel">
-              <div class="prontuario-header">
-                <div>
-                  <h2 class="prontuario-title" id="p-name">Nome do Paciente</h2>
-                  <div class="prontuario-meta" id="p-phone">Telefone: 5548... | Triado em: --/--/----</div>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                  <button onclick="focarConversa()" class="btn btn-secondary">💬 Ir para Conversa</button>
-                  <button onclick="excluirProntuarioAtual()" class="btn btn-secondary" style="border-color: rgba(239, 68, 68, 0.4); color: #ef4444;" title="Excluir Prontuário Clínico">
-                    🗑️ Excluir Prontuário
-                  </button>
+                <div id="chat-list-container" class="chat-list" style="overflow-y: auto;">
+                  <div class="empty-state" style="padding: 10px;">Nenhuma conversa.</div>
                 </div>
               </div>
 
-              <div class="prontuario-content">
-                
-                <!-- Dados Gerais -->
-                <div class="ficha-dados">
-                  <div class="ficha-section-title">Dados Gerais</div>
-                  <div class="ficha-list">
-                    <div class="ficha-item">
-                      <span class="ficha-label">Nome Completo</span>
-                      <span class="ficha-val" id="p-val-name">--</span>
+              <!-- Área Principal do Chat -->
+              <div class="chat-main" id="chat-main-panel" style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+                <!-- Default state -->
+                <div class="chat-select-prompt" id="chat-select-prompt" style="display: flex;">
+                  <span>💬</span> Selecione um paciente para iniciar.
+                </div>
+
+                <!-- Chat Ativo -->
+                <div style="display: none; height: 100%; flex-direction: column;" id="chat-active-panel">
+                  <div class="chat-header" style="padding: 6px 10px; height: auto; flex-shrink: 0;">
+                    <div class="chat-header-info">
+                      <h3 id="chat-header-name" style="font-size: 12px;">Nome do Paciente</h3>
+                      <span class="chat-header-status" id="chat-header-phone" style="font-size: 9.5px;">--</span>
                     </div>
-                    <div class="ficha-item">
-                      <span class="ficha-label">Idade</span>
-                      <span class="ficha-val" id="p-val-age">--</span>
-                    </div>
-                    <div class="ficha-item">
-                      <span class="ficha-label">Plano de Saúde / Convênio</span>
-                      <span class="ficha-val" id="p-val-plan">--</span>
-                    </div>
-                    <div class="ficha-item">
-                      <span class="ficha-label">Número da Carteirinha</span>
-                      <span class="ficha-val" id="p-val-card">--</span>
-                    </div>
-                    <div class="ficha-item">
-                      <span class="ficha-label">Queixa / Motivo Principal</span>
-                      <span class="ficha-val" id="p-val-complaint">--</span>
-                    </div>
-                    <div class="ficha-item">
-                      <span class="ficha-label">Solicitação de Receita</span>
-                      <span class="ficha-val" id="p-val-medication">--</span>
-                    </div>
-                    <div class="ficha-item">
-                      <span class="ficha-label">Acordo com Formato Resolutivo</span>
-                      <span class="ficha-val" id="p-val-terms">--</span>
+                    <div class="takeover-control">
+                      <span class="takeover-label" id="takeover-status-label" style="font-size: 9.5px;">Robô Ativo</span>
+                      <label class="switch">
+                        <input type="checkbox" id="human-takeover-checkbox" onchange="toggleHumanTakeover(this.checked)">
+                        <span class="slider round"></span>
+                      </label>
                     </div>
                   </div>
-                </div>
-
-                <!-- Linha de Evolução e Notas -->
-                <div class="evolucao-panel">
-                  <div class="ficha-section-title">Evolução do Prontuário / Notas</div>
-                  
-                  <!-- Nova Nota -->
-                  <form onsubmit="adicionarNotaEvolucao(event)" class="note-input-form">
-                    <textarea placeholder="Escreva uma nova nota, observação de agendamento ou evolução clínica..." class="note-textarea" id="note-text-field" required></textarea>
-                    <button type="submit" class="btn btn-primary" style="align-self: flex-end; padding: 8px 16px;">Salvar Evolução</button>
+                  <!-- Log de Mensagens -->
+                  <div class="chat-messages" id="chat-messages-log" style="flex: 1; overflow-y: auto; padding: 10px;"></div>
+                  <!-- Input de Envio -->
+                  <form onsubmit="enviarMensagemManual(event)" class="chat-input-area" style="padding: 8px; flex-shrink: 0;">
+                    <input type="text" placeholder="Digite uma mensagem..." class="chat-input-field" id="chat-input-text" style="font-size: 11px; padding: 8px;">
+                    <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size: 11px;">Enviar</button>
                   </form>
-
-                  <!-- Histórico de Notas -->
-                  <div class="evolucao-timeline" id="notes-timeline-container">
-                    <div class="empty-state" style="border: none; padding: 20px 0;">Nenhuma evolução inserida no prontuário.</div>
-                  </div>
                 </div>
-
               </div>
             </div>
-
           </div>
-
         </div>
-      </div>
 
-      <!-- ────────────────────────────────────────────────────────
-           CONTEÚDO ABA 5: Workspace do Médico (Fila, Prontuário, Agenda)
-           ──────────────────────────────────────────────────────── -->
-      <div id="tab-content-workspace" class="tab-content">
-        <div class="workspace-layout">
-          
-          <!-- Coluna 1: Fila Virtual & Busca -->
-          <div class="workspace-col" style="width: 325px;">
-            <div class="panel-header">
-              <h2>🚶 Fila de Espera Virtual</h2>
-              <span class="panel-header-badge" id="w-badge-queue-count">0</span>
+        <!-- Janela 3: Fila de Espera Virtual -->
+        <div class="window-panel" id="win-queue" style="top: 15px; left: 915px; width: 330px; height: 410px;">
+          <div class="window-header">
+            <div class="window-title">🚶 Fila de Espera Física</div>
+            <div class="window-controls">
+              <button onclick="minimizeWindow('win-queue')" class="window-control-btn minimize" title="Minimizar"></button>
+              <button onclick="maximizeWindow('win-queue')" class="window-control-btn maximize" title="Maximizar"></button>
+              <button onclick="closeWindow('win-queue')" class="window-control-btn close" title="Fechar"></button>
             </div>
-            
+          </div>
+          <div class="window-body" style="padding: 12px; gap: 8px;">
             <!-- Adicionar Paciente à Fila -->
-            <div class="vqueue-search-dropdown-container">
-              <input type="text" placeholder="Adicionar paciente à fila..." class="chat-search-input" id="w-queue-search-input" oninput="filtrarPacientesQueue()" onfocus="mostrarQueueSearchDropdown()" onblur="setTimeout(ocultarQueueSearchDropdown, 200)">
+            <div class="vqueue-search-dropdown-container" style="flex-shrink: 0;">
+              <input type="text" placeholder="Registrar entrada de paciente..." class="chat-search-input" id="w-queue-search-input" oninput="filtrarPacientesQueue()" onfocus="mostrarQueueSearchDropdown()" onblur="setTimeout(ocultarQueueSearchDropdown, 200)" style="font-size: 11.5px; padding: 8px;">
               <div class="vqueue-search-dropdown" id="w-queue-search-dropdown"></div>
             </div>
 
             <!-- Fila Virtual List -->
-            <div class="vqueue-list" id="w-queue-list-container">
+            <div class="vqueue-list" id="w-queue-list-container" style="flex: 1; overflow-y: auto;">
               <div class="empty-state">Nenhum paciente na fila física.</div>
             </div>
-            
-            <div class="panel-header" style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 12px;">
-              <h2>🗂️ Pesquisa de Prontuários</h2>
-            </div>
-            <input type="text" placeholder="Pesquisar prontuário..." class="chat-search-input" id="w-db-search-input" oninput="filtrarPacientesWorkspace()">
-            
-            <div class="db-patient-list" id="w-db-patient-list-container" style="max-height: 250px; overflow-y: auto;">
-              <div class="empty-state">Pesquise para listar.</div>
+          </div>
+        </div>
+
+        <!-- Janela 4: Prontuário Eletrônico -->
+        <div class="window-panel" id="win-prontuario" style="top: 440px; left: 15px; width: 620px; height: 380px;">
+          <div class="window-header">
+            <div class="window-title">📋 Prontuário Eletrônico & Evoluções</div>
+            <div class="window-controls">
+              <button onclick="minimizeWindow('win-prontuario')" class="window-control-btn minimize" title="Minimizar"></button>
+              <button onclick="maximizeWindow('win-prontuario')" class="window-control-btn maximize" title="Maximizar"></button>
+              <button onclick="closeWindow('win-prontuario')" class="window-control-btn close" title="Fechar"></button>
             </div>
           </div>
-          
-          <!-- Coluna 2: Prontuário Integrado -->
-          <div class="workspace-col" style="flex: 1;">
-            <div class="panel-header">
-              <h2>📋 Prontuário Eletrônico Completo</h2>
-            </div>
+          <div class="window-body" style="padding: 12px; display: flex; flex-direction: row; gap: 12px;">
             
-            <!-- Default State: Sem prontuário ativo -->
-            <div class="empty-state" id="w-prontuario-empty-state" style="display: flex;">
-              <span>🗂️</span>
-              Selecione um paciente na fila, na agenda ou realize uma pesquisa para visualizar e editar o prontuário.
-            </div>
-
-            <!-- Prontuário Ativo -->
-            <div class="workspace-prontuario-container" id="w-prontuario-panel" style="display: none;">
-              <div class="workspace-ficha-card">
-                <div class="prontuario-header-title" style="font-family: var(--font-display); font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--color-text-main);" id="w-p-name">Nome do Paciente</div>
-                <div style="font-size: 11px; color: var(--color-text-muted); margin-bottom: 14px;" id="w-p-phone">Telefone: --</div>
-                
-                <div class="ficha-details-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 12px;">
-                  <div><strong>Idade:</strong> <span id="w-p-age">--</span></div>
-                  <div><strong>Convênio:</strong> <span id="w-p-plan">--</span></div>
-                  <div><strong>Carteirinha:</strong> <span id="w-p-card">--</span></div>
-                  <div><strong>Termos Resolutivos:</strong> <span id="w-p-terms">--</span></div>
-                </div>
-                
-                <div style="font-size: 12.5px; margin-top: 14px; padding: 10px; background-color: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid var(--border-color);">
-                  <strong>Queixa Principal (Triagem):</strong>
-                  <div style="margin-top: 6px; color: var(--color-text-muted);" id="w-p-complaint">--</div>
-                </div>
-
-                <div style="font-size: 12.5px; margin-top: 10px; padding: 10px; background-color: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid var(--border-color);">
-                  <strong>Necessidade de Receita / Medicamento:</strong>
-                  <div style="margin-top: 6px; color: var(--color-text-muted);" id="w-p-medication">--</div>
-                </div>
+            <!-- Left sub-col: Search and general data -->
+            <div style="width: 240px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; border-right: 1px solid var(--border-color); padding-right: 12px;">
+              <input type="text" placeholder="Pesquisar prontuário por nome..." class="chat-search-input" id="w-db-search-input" oninput="filtrarPacientesWorkspace()" style="font-size: 11px; padding: 6px;">
+              
+              <div class="db-patient-list" id="w-db-patient-list-container" style="flex: 1; overflow-y: auto; max-height: 150px;">
+                <div class="empty-state">Pesquise para listar.</div>
               </div>
 
-              <!-- Evoluções do Prontuário -->
-              <div class="evolucao-panel" style="background-color: var(--bg-card); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 14px;">
-                <div class="ficha-section-title" style="font-family: var(--font-display); font-size: 14px; font-weight: 600;">Evolução Clínica / Anotações de Consulta</div>
-                
-                <form onsubmit="adicionarNotaEvolucaoWorkspace(event)" class="note-input-form" style="display: flex; flex-direction: column; gap: 10px;">
-                  <textarea placeholder="Digite aqui as notas da consulta atual, prescrição ou evolução do prontuário..." class="note-textarea" id="w-note-text-field" style="width: 100%; height: 100px; background-color: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; color: white; padding: 10px; font-size: 13px; outline: none; resize: none;" required></textarea>
-                  <button type="submit" class="btn btn-primary" style="align-self: flex-end; padding: 8px 16px;">Salvar Nota de Evolução</button>
+              <!-- Ficha cadastral compacta -->
+              <div id="w-prontuario-ficha-box" style="display: none; font-size: 11px; background-color: rgba(255,255,255,0.01); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color);">
+                <div style="font-weight: 700; margin-bottom: 4px;" id="w-p-name">Nome do Paciente</div>
+                <div>Idade: <span id="w-p-age">--</span></div>
+                <div>Convênio: <span id="w-p-plan">--</span></div>
+                <div>Carteirinha: <span id="w-p-card">--</span></div>
+                <div>Termos: <span id="w-p-terms">--</span></div>
+                <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.05);">
+                  <strong>Queixa:</strong> <span id="w-p-complaint">--</span>
+                </div>
+                <div style="margin-top: 4px;">
+                  <strong>Receita:</strong> <span id="w-p-medication">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right sub-col: Evolutions notes and timeline -->
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0;">
+              <!-- Default state -->
+              <div class="empty-state" id="w-prontuario-empty-state" style="display: flex; flex: 1; justify-content: center; align-items: center; text-align: center;">
+                Selecione um paciente na fila ou realize uma pesquisa para carregar prontuário.
+              </div>
+
+              <div id="w-prontuario-evolucao-box" style="display: none; flex: 1; flex-direction: column; gap: 8px; min-height: 0;">
+                <form onsubmit="adicionarNotaEvolucaoWorkspace(event)" style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
+                  <textarea placeholder="Digite a nova nota de evolução clínica..." class="note-textarea" id="w-note-text-field" style="width: 100%; height: 50px; font-size: 11.5px; padding: 6px;" required></textarea>
+                  <button type="submit" class="btn btn-primary" style="align-self: flex-end; padding: 4px 10px; font-size: 11px;">Salvar Evolução</button>
                 </form>
-
-                <div class="evolucao-timeline" id="w-notes-timeline-container" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; max-height: 250px; overflow-y: auto;">
-                  <div class="empty-state" style="border: none; padding: 10px 0;">Nenhuma evolução anotada.</div>
+                <div class="evolucao-timeline" id="w-notes-timeline-container" style="flex: 1; overflow-y: auto;">
+                  <div class="empty-state">Nenhuma evolução anotada.</div>
                 </div>
               </div>
             </div>
+
           </div>
-          
-          <!-- Coluna 3: Agenda Diária -->
-          <div class="workspace-col" style="width: 340px;">
-            <div class="wagenda-header">
+        </div>
+
+        <!-- Janela 5: Agenda Diária -->
+        <div class="window-panel" id="win-agenda" style="top: 440px; left: 650px; width: 595px; height: 380px;">
+          <div class="window-header">
+            <div class="window-title">📅 Agenda Diária de Consultas</div>
+            <div class="window-controls">
+              <button onclick="minimizeWindow('win-agenda')" class="window-control-btn minimize" title="Minimizar"></button>
+              <button onclick="maximizeWindow('win-agenda')" class="window-control-btn maximize" title="Maximizar"></button>
+              <button onclick="closeWindow('win-agenda')" class="window-control-btn close" title="Fechar"></button>
+            </div>
+          </div>
+          <div class="window-body" style="padding: 12px; gap: 8px; display: flex; flex-direction: column;">
+            <div class="wagenda-header" style="padding-bottom: 6px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
               <div class="wagenda-controls">
-                <span class="wagenda-title">📅 Agenda Diária</span>
-                <select class="wagenda-interval-select" id="w-interval-select" onchange="salvarIntervaloAgenda(this.value)">
+                <select class="wagenda-interval-select" id="w-interval-select" onchange="salvarIntervaloAgenda(this.value)" style="font-size: 11px; padding: 4px 8px;">
                   <option value="15">Intervalo: 15 min</option>
                   <option value="20">Intervalo: 20 min</option>
                   <option value="30">Intervalo: 30 min</option>
                   <option value="60">Intervalo: 60 min</option>
                 </select>
               </div>
-              <input type="date" class="chat-search-input" id="w-agenda-date" onchange="carregarAgendaWorkspace()" style="font-size: 12px; font-weight: 500;">
+              <input type="date" class="chat-search-input" id="w-agenda-date" onchange="carregarAgendaWorkspace()" style="font-size: 11px; padding: 6px; width: auto; max-width: 150px;">
             </div>
-
-            <!-- Slots da Agenda -->
-            <div class="wagenda-slots" id="w-agenda-slots-container">
-              <div class="empty-state">Carregando horários...</div>
+            <!-- Slots -->
+            <div class="wagenda-slots" id="w-agenda-slots-container" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;">
+              <div class="empty-state">Carregando agenda...</div>
             </div>
           </div>
-
         </div>
+
       </div>
 
-    </main>
+      <!-- Taskbar inferior para janelas minimizadas -->
+      <div id="desktop-taskbar"></div></main>
 
   </div>
 
@@ -1957,6 +1951,8 @@
     // Inicialização
     window.addEventListener('DOMContentLoaded', () => {
       fetchData();
+      initWorkspace();
+      initWindowManager();
       
       // Configura Polling a cada 4 segundos
       pollingInterval = setInterval(fetchData, 4000);
@@ -2031,15 +2027,9 @@
           }
         }
 
-        // Se a aba Prontuários estiver aberta, atualiza pacientes sem limpar seleção
-        if (activeTab === 'db') {
-          fetchPatients();
-        } else if (activeTab === 'calendar') {
-          fetchCalendarAppointments();
-        } else if (activeTab === 'workspace') {
-          carregarFilaVirtual();
-          carregarAgendaWorkspace();
-        }
+        // Sempre atualiza a fila virtual e a agenda, que estão ativas na tela do médico
+        carregarFilaVirtual();
+        carregarAgendaWorkspace();
       } catch (err) {
         console.error('Erro na requisição periódica:', err);
       }
@@ -3073,24 +3063,451 @@
     }
 
     // ────────────────────────────────────────────────────────
-    // LÓGICA DO WORKSPACE DO MÉDICO
+    // LÓGICA DO WORKSPACE DO MÉDICO & WINDOW MANAGER
     // ────────────────────────────────────────────────────────
     let workspaceSelectedPatientPhone = null;
     let workspaceAllPatients = [];
     let workspaceVirtualQueue = [];
     let workspaceAgendaAppointments = [];
     let workspaceIntervalMinutes = 15;
+    
+    // Gerenciador de Janelas
+    let highestZIndex = 100;
+    const windowStates = {}; 
+    const windowList = ['win-triage', 'win-chat', 'win-queue', 'win-prontuario', 'win-agenda'];
 
-    // Inicialização do Workspace
+    // Inicializa o gerenciador de janelas flutuantes
+    function initWindowManager() {
+      windowList.forEach(id => {
+        const win = document.getElementById(id);
+        if (!win) return;
+
+        // Adiciona as alças de resize no DOM dinamicamente
+        const handles = ['r', 'l', 'b', 't', 'se', 'sw', 'ne', 'nw'];
+        handles.forEach(h => {
+          const div = document.createElement('div');
+          div.className = `resize-handle ${h}`;
+          win.appendChild(div);
+        });
+
+        // Configura o evento para trazer para a frente no clique
+        win.addEventListener('mousedown', () => focusWindow(id));
+
+        // Configura Arrastar (Drag)
+        const header = win.querySelector('.window-header');
+        if (header) {
+          setupDrag(win, header);
+        }
+
+        // Configura Redimensionar (Resize)
+        setupResize(win);
+
+        // Inicializa estado da janela padrão
+        windowStates[id] = {
+          id: id,
+          top: win.style.top,
+          left: win.style.left,
+          width: win.style.width,
+          height: win.style.height,
+          minimized: false,
+          maximized: false,
+          closed: false,
+          prevTop: win.style.top,
+          prevLeft: win.style.left,
+          prevWidth: win.style.width,
+          prevHeight: win.style.height
+        };
+      });
+
+      // Carrega layout salvo se houver
+      restoreLayout();
+
+      // Atualiza a barra de tarefas (taskbar)
+      updateTaskbar();
+    }
+
+    // Traz a janela selecionada para a frente de todas as outras
+    function focusWindow(id) {
+      const win = document.getElementById(id);
+      if (!win) return;
+      if (windowStates[id] && windowStates[id].minimized) return;
+
+      highestZIndex += 1;
+      win.style.zIndex = highestZIndex;
+      
+      // Destaca borda
+      document.querySelectorAll('.window-panel').forEach(w => w.classList.remove('active'));
+      win.classList.add('active');
+
+      saveLayout();
+    }
+
+    // Toggle de abrir, focar ou minimizar janela pelo Dock Lateral
+    function toggleWindow(id) {
+      const state = windowStates[id];
+      if (!state) return;
+
+      const win = document.getElementById(id);
+      if (!win) return;
+
+      if (state.closed) {
+        state.closed = false;
+        win.style.display = 'flex';
+        state.minimized = false;
+        focusWindow(id);
+      } else if (state.minimized) {
+        restoreWindow(id);
+      } else if (win.classList.contains('active')) {
+        minimizeWindow(id);
+      } else {
+        focusWindow(id);
+      }
+      
+      updateTaskbar();
+      saveLayout();
+    }
+
+    // Minimiza uma janela
+    function minimizeWindow(id) {
+      const win = document.getElementById(id);
+      if (!win) return;
+
+      windowStates[id].minimized = true;
+      win.style.display = 'none';
+      
+      updateTaskbar();
+      saveLayout();
+    }
+
+    // Restaura uma janela minimizada
+    function restoreWindow(id) {
+      const win = document.getElementById(id);
+      if (!win) return;
+
+      windowStates[id].minimized = false;
+      win.style.display = 'flex';
+      focusWindow(id);
+
+      updateTaskbar();
+      saveLayout();
+    }
+
+    // Maximiza ou restaura tamanho da janela
+    function maximizeWindow(id) {
+      const win = document.getElementById(id);
+      if (!win) return;
+
+      const state = windowStates[id];
+      if (state.maximized) {
+        win.style.top = state.prevTop;
+        win.style.left = state.prevLeft;
+        win.style.width = state.prevWidth;
+        win.style.height = state.prevHeight;
+        state.maximized = false;
+      } else {
+        state.prevTop = win.style.top;
+        state.prevLeft = win.style.left;
+        state.prevWidth = win.style.width;
+        state.prevHeight = win.style.height;
+
+        win.style.top = '0px';
+        win.style.left = '0px';
+        win.style.width = '100%';
+        win.style.height = '100%';
+        state.maximized = true;
+      }
+
+      saveLayout();
+    }
+
+    // Fecha a janela
+    function closeWindow(id) {
+      const win = document.getElementById(id);
+      if (!win) return;
+
+      windowStates[id].closed = true;
+      win.style.display = 'none';
+
+      updateTaskbar();
+      saveLayout();
+    }
+
+    // Configura evento de Arrastar (Drag) com Snapping nas bordas
+    function setupDrag(win, header) {
+      let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+      
+      header.onmousedown = dragMouseDown;
+
+      function dragMouseDown(e) {
+        e = e || window.event;
+        if (e.target.classList.contains('window-control-btn')) return;
+        
+        e.preventDefault();
+        focusWindow(win.id);
+
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+      }
+
+      function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        
+        if (windowStates[win.id].maximized) return;
+
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+
+        const canvas = document.getElementById('desktop-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        let newTop = win.offsetTop - pos2;
+        let newLeft = win.offsetLeft - pos1;
+
+        const snapThreshold = 15;
+        if (newLeft < snapThreshold) newLeft = 0;
+        if (newTop < snapThreshold) newTop = 0;
+        if (Math.abs((newLeft + win.offsetWidth) - canvasRect.width) < snapThreshold) {
+          newLeft = canvasRect.width - win.offsetWidth;
+        }
+        if (Math.abs((newTop + win.offsetHeight) - canvasRect.height) < snapThreshold) {
+          newTop = canvasRect.height - win.offsetHeight;
+        }
+
+        if (newTop < 0) newTop = 0;
+        if (newLeft < 0) newLeft = 0;
+        if (newLeft > canvasRect.width - 100) newLeft = canvasRect.width - 100;
+        if (newTop > canvasRect.height - 50) newTop = canvasRect.height - 50;
+
+        win.style.top = newTop + "px";
+        win.style.left = newLeft + "px";
+
+        windowStates[win.id].top = win.style.top;
+        windowStates[win.id].left = win.style.left;
+      }
+
+      function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+        saveLayout();
+      }
+    }
+
+    // Configura evento de Redimensionamento (Resize)
+    function setupResize(win) {
+      const handles = win.querySelectorAll('.resize-handle');
+      
+      handles.forEach(handle => {
+        handle.onmousedown = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          focusWindow(win.id);
+
+          const startWidth = win.offsetWidth;
+          const startHeight = win.offsetHeight;
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const startLeft = win.offsetLeft;
+          const startTop = win.offsetTop;
+
+          const isRight = handle.classList.contains('r') || handle.classList.contains('se') || handle.classList.contains('ne');
+          const isLeft = handle.classList.contains('l') || handle.classList.contains('sw') || handle.classList.contains('nw');
+          const isBottom = handle.classList.contains('b') || handle.classList.contains('se') || handle.classList.contains('sw');
+          const isTop = handle.classList.contains('t') || handle.classList.contains('ne') || handle.classList.contains('nw');
+
+          document.onmousemove = function(moveEvent) {
+            let widthDiff = moveEvent.clientX - startX;
+            let heightDiff = moveEvent.clientY - startY;
+
+            if (isRight) {
+              const newWidth = Math.max(250, startWidth + widthDiff);
+              win.style.width = newWidth + 'px';
+            }
+            if (isLeft) {
+              const newWidth = Math.max(250, startWidth - widthDiff);
+              if (newWidth > 250) {
+                win.style.left = (startLeft + widthDiff) + 'px';
+                win.style.width = newWidth + 'px';
+              }
+            }
+            if (isBottom) {
+              const newHeight = Math.max(150, startHeight + heightDiff);
+              win.style.height = newHeight + 'px';
+            }
+            if (isTop) {
+              const newHeight = Math.max(150, startHeight - heightDiff);
+              if (newHeight > 150) {
+                win.style.top = (startTop + heightDiff) + 'px';
+                win.style.height = newHeight + 'px';
+              }
+            }
+
+            windowStates[win.id].width = win.style.width;
+            windowStates[win.id].height = win.style.height;
+            windowStates[win.id].left = win.style.left;
+            windowStates[win.id].top = win.style.top;
+          };
+
+          document.onmouseup = function() {
+            document.onmousemove = null;
+            document.onmouseup = null;
+            saveLayout();
+          };
+        };
+      });
+    }
+
+    // Organiza as janelas em layout de mosaico (Tiling) automático
+    function organizarLayout() {
+      const canvas = document.getElementById('desktop-canvas');
+      const canvasRect = canvas.getBoundingClientRect();
+      const W = canvasRect.width;
+      const H = canvasRect.height;
+
+      const activeWindows = windowList.filter(id => !windowStates[id].closed);
+      if (activeWindows.length === 0) return;
+
+      if (activeWindows.length === 1) {
+        const id = activeWindows[0];
+        const win = document.getElementById(id);
+        win.style.top = '10px';
+        win.style.left = '10px';
+        win.style.width = (W - 20) + 'px';
+        win.style.height = (H - 20) + 'px';
+      } else if (activeWindows.length === 2) {
+        const wHalf = Math.floor((W - 30) / 2);
+        activeWindows.forEach((id, idx) => {
+          const win = document.getElementById(id);
+          win.style.top = '10px';
+          win.style.left = (10 + idx * (wHalf + 10)) + 'px';
+          win.style.width = wHalf + 'px';
+          win.style.height = (H - 20) + 'px';
+        });
+      } else if (activeWindows.length === 3) {
+        const wLeft = Math.floor((W - 30) * 0.6);
+        const wRight = Math.floor((W - 30) * 0.4);
+        const hHalf = Math.floor((H - 30) / 2);
+
+        const win1 = document.getElementById(activeWindows[0]);
+        win1.style.top = '10px';
+        win1.style.left = '10px';
+        win1.style.width = wLeft + 'px';
+        win1.style.height = (H - 20) + 'px';
+
+        const win2 = document.getElementById(activeWindows[1]);
+        win2.style.top = '10px';
+        win2.style.left = (wLeft + 20) + 'px';
+        win2.style.width = wRight + 'px';
+        win2.style.height = hHalf + 'px';
+
+        const win3 = document.getElementById(activeWindows[2]);
+        win3.style.top = (hHalf + 20) + 'px';
+        win3.style.left = (wLeft + 20) + 'px';
+        win3.style.width = wRight + 'px';
+        win3.style.height = hHalf + 'px';
+      } else {
+        const rows = 2;
+        const cols = Math.ceil(activeWindows.length / 2);
+        const wCell = Math.floor((W - (cols + 1) * 10) / cols);
+        const hCell = Math.floor((H - 30) / 2);
+
+        activeWindows.forEach((id, idx) => {
+          const r = Math.floor(idx / cols);
+          const c = idx % cols;
+          const win = document.getElementById(id);
+          win.style.top = (10 + r * (hCell + 10)) + 'px';
+          win.style.left = (10 + c * (wCell + 10)) + 'px';
+          win.style.width = wCell + 'px';
+          win.style.height = hCell + 'px';
+        });
+      }
+
+      activeWindows.forEach(id => {
+        const state = windowStates[id];
+        state.minimized = false;
+        state.maximized = false;
+        const win = document.getElementById(id);
+        win.style.display = 'flex';
+        
+        state.top = win.style.top;
+        state.left = win.style.left;
+        state.width = win.style.width;
+        state.height = win.style.height;
+      });
+
+      updateTaskbar();
+      saveLayout();
+    }
+
+    // Atualiza a barra de tarefas dock na parte inferior
+    function updateTaskbar() {
+      const taskbar = document.getElementById('desktop-taskbar');
+      if (!taskbar) return;
+
+      const minimizedWindows = windowList.filter(id => windowStates[id] && windowStates[id].minimized);
+      
+      taskbar.innerHTML = minimizedWindows.map(id => {
+        let title = 'Painel';
+        if (id === 'win-triage') title = '💬 Triagens';
+        if (id === 'win-chat') title = '✉️ Chat';
+        if (id === 'win-queue') title = '🚶 Fila';
+        if (id === 'win-prontuario') title = '📋 Prontuário';
+        if (id === 'win-agenda') title = '📅 Agenda';
+
+        return `<button onclick="restoreWindow('${id}')" class="taskbar-item">${title}</button>`;
+      }).join('');
+    }
+
+    // Salva o layout das janelas no localStorage
+    function saveLayout() {
+      localStorage.setItem('dr_clinicabot_window_layout', JSON.stringify(windowStates));
+    }
+
+    // Restaura o layout das janelas do localStorage
+    function restoreLayout() {
+      const saved = localStorage.getItem('dr_clinicabot_window_layout');
+      if (!saved) return;
+
+      try {
+        const states = JSON.parse(saved);
+        windowList.forEach(id => {
+          if (!states[id]) return;
+          
+          const state = states[id];
+          const win = document.getElementById(id);
+          if (!win) return;
+
+          windowStates[id] = state;
+
+          win.style.top = state.top;
+          win.style.left = state.left;
+          win.style.width = state.width;
+          win.style.height = state.height;
+
+          if (state.closed || state.minimized) {
+            win.style.display = 'none';
+          } else {
+            win.style.display = 'flex';
+          }
+        });
+      } catch (e) {
+        console.error('Erro ao restaurar layout:', e);
+      }
+    }
+
+    // Lógica de Negócio do Workspace
     async function initWorkspace() {
-      // 1. Configura data de hoje como padrão no calendário do workspace se não estiver preenchido
       const dateInput = document.getElementById('w-agenda-date');
       if (!dateInput.value) {
         const today = new Date().toISOString().split('T')[0];
         dateInput.value = today;
       }
 
-      // 2. Busca o intervalo padrão do banco
       try {
         const res = await fetch('/api/settings');
         if (res.ok) {
@@ -3104,7 +3521,6 @@
         console.error('Erro ao carregar configurações de intervalo:', err);
       }
 
-      // 3. Carrega fila, agenda e pacientes em paralelo
       await Promise.all([
         carregarFilaVirtual(),
         carregarAgendaWorkspace(),
@@ -3112,15 +3528,14 @@
       ]);
     }
 
-    // Carrega Fila Virtual
     async function carregarFilaVirtual() {
       try {
         const res = await fetch('/api/virtual-queue');
         if (!res.ok) throw new Error('Erro ao obter fila virtual');
         workspaceVirtualQueue = await res.json();
         
-        // Atualiza contagem
-        document.getElementById('w-badge-queue-count').innerText = workspaceVirtualQueue.length;
+        // Atualiza badges
+        document.getElementById('badge-active-queue').innerText = workspaceVirtualQueue.length;
         
         const container = document.getElementById('w-queue-list-container');
         if (workspaceVirtualQueue.length === 0) {
@@ -3154,7 +3569,7 @@
             `;
           } else {
             actionButtons = `
-              <button onclick="removerPacienteFila('${item.id}')" class="btn btn-secondary" style="flex: 1;">Remover da Fila</button>
+              <button onclick="removerPacienteFila('${item.id}')" class="btn btn-secondary" style="flex: 1;">Remover</button>
             `;
           }
 
@@ -3162,13 +3577,13 @@
           const timeStr = arrivalDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
           return `
-            <div class="vqueue-card ${cardClass}">
+            <div class="vqueue-card ${cardClass}" style="padding: 10px; border-radius: 8px;">
               <div class="vqueue-header">
-                <span class="vqueue-name" title="${item.patient_name}">${item.patient_name}</span>
-                <span class="vqueue-badge ${statusBadgeClass}">${statusLabel}</span>
+                <span class="vqueue-name" style="font-size: 12px; max-width: 130px;" title="${item.patient_name}">${item.patient_name}</span>
+                <span class="vqueue-badge ${statusBadgeClass}" style="font-size: 8px;">${statusLabel}</span>
               </div>
-              <div class="vqueue-time">Chegada: <strong>${timeStr}</strong></div>
-              <div class="vqueue-actions">${actionButtons}</div>
+              <div class="vqueue-time" style="font-size: 9px;">Chegada: <strong>${timeStr}</strong></div>
+              <div class="vqueue-actions" style="margin-top: 4px;">${actionButtons}</div>
             </div>
           `;
         }).join('');
@@ -3177,7 +3592,6 @@
       }
     }
 
-    // Carrega todos os pacientes do banco local para a busca do workspace
     async function carregarTodosPacientesWorkspace() {
       try {
         const res = await fetch('/api/patients');
@@ -3190,45 +3604,54 @@
       }
     }
 
-    // Filtra pacientes na pesquisa do prontuário
     function filtrarPacientesWorkspace() {
       const q = document.getElementById('w-db-search-input').value.toLowerCase().trim();
+      const listContainer = document.getElementById('w-db-patient-list-container');
+      
       if (!q) {
-        renderWorkspacePatientsList([]); // Só mostra se pesquisar
+        listContainer.style.display = 'none';
+        renderWorkspacePatientsList([]);
         return;
       }
+      
       const filtered = workspaceAllPatients.filter(p => p.name.toLowerCase().includes(q) || p.phone.includes(q));
       renderWorkspacePatientsList(filtered);
+      listContainer.style.display = 'block';
     }
 
-    // Renderiza a lista de pesquisa do prontuário
     function renderWorkspacePatientsList(patients) {
       const container = document.getElementById('w-db-patient-list-container');
       if (patients.length === 0) {
         const q = document.getElementById('w-db-search-input').value.trim();
-        container.innerHTML = `<div class="empty-state">${q ? 'Nenhum paciente encontrado.' : 'Pesquise para listar prontuários.'}</div>`;
+        container.innerHTML = `<div class="empty-state">${q ? 'Nenhum paciente.' : 'Pesquise para listar.'}</div>`;
         return;
       }
 
       container.innerHTML = patients.map(p => {
         const activeClass = p.phone === workspaceSelectedPatientPhone ? 'active' : '';
         return `
-          <button onclick="selecionarPacienteWorkspace('${p.phone}')" class="db-patient-item ${activeClass}" style="padding: 10px 14px; border-radius: 8px; margin-bottom: 4px;">
-            <div class="db-patient-avatar" style="width: 32px; height: 32px; font-size: 11px;">${p.name.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}</div>
-            <div class="db-patient-content" style="flex: 1; min-width: 0;">
-              <div class="db-patient-name" style="font-size: 12.5px;">${p.name}</div>
-              <div class="db-patient-desc" style="font-size: 10.5px;">${p.age} anos | ${p.health_plan}</div>
+          <button onclick="selecionarPacienteWorkspace('${p.phone}')" class="db-patient-item ${activeClass}" style="padding: 8px 10px; border-radius: 6px; margin-bottom: 2px;">
+            <div class="db-patient-content" style="flex: 1; min-width: 0; text-align: left;">
+              <div class="db-patient-name" style="font-size: 11.5px; font-weight: 600;">${p.name}</div>
+              <div class="db-patient-desc" style="font-size: 9.5px;">${p.age} anos | ${p.health_plan}</div>
             </div>
           </button>
         `;
       }).join('');
     }
 
-    // Seleciona paciente no Workspace e carrega o Prontuário Integrado no centro
     async function selecionarPacienteWorkspace(phone) {
       workspaceSelectedPatientPhone = phone;
       
-      // Destaca na lista de pesquisa
+      // Abre a janela de prontuário e foca nela se estiver minimizada/fechada
+      const state = windowStates['win-prontuario'];
+      if (state.closed || state.minimized) {
+        state.closed = false;
+        state.minimized = false;
+        document.getElementById('win-prontuario').style.display = 'flex';
+      }
+      focusWindow('win-prontuario');
+
       document.querySelectorAll('#w-db-patient-list-container .db-patient-item').forEach(item => item.classList.remove('active'));
       
       try {
@@ -3236,50 +3659,47 @@
         if (!res.ok) throw new Error('Falha ao carregar prontuário');
         const data = await res.json();
         
-        // Exibe painel e esconde placeholder
         document.getElementById('w-prontuario-empty-state').style.display = 'none';
-        document.getElementById('w-prontuario-panel').style.display = 'block';
+        document.getElementById('w-prontuario-ficha-box').style.display = 'block';
+        document.getElementById('w-prontuario-evolucao-box').style.display = 'flex';
 
-        // Preenche campos
         document.getElementById('w-p-name').innerText = data.patient.name;
-        document.getElementById('w-p-phone').innerHTML = `Telefone: <strong>+${data.patient.phone}</strong> | Registro: ${new Date(data.patient.completed_at).toLocaleString('pt-BR')}`;
+        document.getElementById('w-p-phone').innerHTML = `Telefone: +${data.patient.phone}`;
         document.getElementById('w-p-age').innerText = `${data.patient.age} anos`;
         document.getElementById('w-p-plan').innerText = data.patient.health_plan;
-        document.getElementById('w-p-card').innerText = data.patient.card_number || 'Não informado / Não aplicável';
-        document.getElementById('w-p-terms').innerText = data.patient.agreed_to_terms === 1 ? 'Sim, concorda com formato resolutivo' : 'Não de acordo';
-        document.getElementById('w-p-complaint').innerText = data.patient.complaint || 'Nenhuma queixa descrita na triagem.';
-        document.getElementById('w-p-medication').innerText = data.patient.medication || 'Não solicitou receita antecipada.';
+        document.getElementById('w-p-card').innerText = data.patient.card_number || 'Não aplicável';
+        document.getElementById('w-p-terms').innerText = data.patient.agreed_to_terms === 1 ? 'Sim' : 'Não';
+        document.getElementById('w-p-complaint').innerText = data.patient.complaint || 'Nenhuma.';
+        document.getElementById('w-p-medication').innerText = data.patient.medication || 'Nenhuma.';
 
-        // Renderiza linha do tempo de notas de evolução
         renderWorkspaceNotesTimeline(data.notes);
         
-        // Recarrega lista de busca para manter seleção visual
-        filtrarPacientesWorkspace();
+        // Esconde lista de busca para economizar espaço
+        document.getElementById('w-db-patient-list-container').style.display = 'none';
+        document.getElementById('w-db-search-input').value = '';
       } catch (err) {
         alert('Erro ao carregar prontuário: ' + err.message);
       }
     }
 
-    // Renderiza linha do tempo de evoluções clínicas no workspace
     function renderWorkspaceNotesTimeline(notes) {
       const container = document.getElementById('w-notes-timeline-container');
       if (!notes || notes.length === 0) {
-        container.innerHTML = '<div class="empty-state" style="border: none; padding: 10px 0;">Nenhuma evolução clínica registrada neste prontuário.</div>';
+        container.innerHTML = '<div class="empty-state" style="border: none; padding: 10px 0;">Nenhuma evolução clínica registrada.</div>';
         return;
       }
 
       container.innerHTML = notes.map(n => `
-        <div class="timeline-node" style="padding-left: 10px; border-left: 2px solid var(--accent-purple); position: relative; margin-bottom: 8px;">
-          <div style="font-size: 11px; color: var(--color-text-dim); display: flex; justify-content: space-between; margin-bottom: 2px;">
+        <div class="timeline-node" style="padding-left: 8px; border-left: 2px solid var(--accent-purple); position: relative; margin-bottom: 6px;">
+          <div style="font-size: 9.5px; color: var(--color-text-dim); display: flex; justify-content: space-between;">
             <strong>${n.author || 'Dr. Carlos Tonelli'}</strong>
             <span>${new Date(n.created_at).toLocaleString('pt-BR')}</span>
           </div>
-          <div style="font-size: 12.5px; color: var(--color-text-main); line-height: 1.4; background-color: rgba(255,255,255,0.01); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02);">${n.content}</div>
+          <div style="font-size: 11px; color: var(--color-text-main); margin-top: 2px;">${n.content}</div>
         </div>
       `).join('');
     }
 
-    // Adiciona nota de evolução pelo Workspace
     async function adicionarNotaEvolucaoWorkspace(e) {
       e.preventDefault();
       if (!workspaceSelectedPatientPhone) return;
@@ -3292,13 +3712,12 @@
         const res = await fetch(`/api/patients/${workspaceSelectedPatientPhone}/notes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content, author: 'Dr. Carlos Tonelli' }) // Autor automático Dr. Carlos
+          body: JSON.stringify({ content, author: 'Dr. Carlos Tonelli' })
         });
 
         if (!res.ok) throw new Error('Erro ao salvar evolução');
         
         textField.value = '';
-        // Recarrega prontuário e anotações
         const detailsRes = await fetch(`/api/patients/${workspaceSelectedPatientPhone}`);
         if (detailsRes.ok) {
           const data = await detailsRes.json();
@@ -3309,7 +3728,6 @@
       }
     }
 
-    // Carrega a Agenda do Workspace com horários lineares e detalhes
     async function carregarAgendaWorkspace() {
       const dateInput = document.getElementById('w-agenda-date');
       const dateStr = dateInput.value;
@@ -3329,12 +3747,10 @@
       }
     }
 
-    // Renderiza a agenda diária
     function renderWorkspaceAgenda() {
       const container = document.getElementById('w-agenda-slots-container');
       container.innerHTML = '';
 
-      // Horário operacional do Dr. Carlos: 13:00 às 20:00
       const startHour = 13;
       const endHour = 20;
 
@@ -3351,40 +3767,37 @@
       }
 
       container.innerHTML = slots.map(timeStr => {
-        // Encontra consulta correspondente a este slot de horário
         const app = workspaceAgendaAppointments.find(a => {
           const appTime = new Date(a.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
           return appTime === timeStr;
         });
 
         if (app) {
-          const ageText = app.age ? `${app.age} anos` : 'Idade não cadastrada';
-          const symptomText = app.complaint || app.description || 'Consulta agendada';
+          const ageText = app.age ? `${app.age} anos` : 'S/I';
+          const symptomText = app.complaint || app.description || 'Consulta';
 
           return `
-            <div onclick="selecionarPacienteWorkspace('${app.patient_phone}')" class="wagenda-slot-card">
-              <div class="wagenda-slot-time">${timeStr}</div>
+            <div onclick="selecionarPacienteWorkspace('${app.patient_phone}')" class="wagenda-slot-card" style="padding: 6px 10px;">
+              <div class="wagenda-slot-time" style="font-size: 13px;">${timeStr}</div>
               <div class="wagenda-slot-info">
-                <div class="wagenda-slot-patient-name">${app.patient_name}</div>
-                <div class="wagenda-slot-patient-desc">${ageText} | Sintoma: ${symptomText}</div>
+                <div class="wagenda-slot-patient-name" style="font-size: 11.5px;">${app.patient_name}</div>
+                <div class="wagenda-slot-patient-desc" style="font-size: 9.5px;">${ageText} | ${symptomText}</div>
               </div>
             </div>
           `;
         }
 
-        // Slot vazio
         return `
-          <div class="wagenda-slot-card" onclick="openQuickBooking('${timeStr}')">
-            <div class="wagenda-slot-time" style="color: var(--color-text-dim); font-weight: 500;">${timeStr}</div>
+          <div class="wagenda-slot-card" onclick="openQuickBooking('${timeStr}')" style="padding: 6px 10px; border-style: dashed; opacity: 0.7;">
+            <div class="wagenda-slot-time" style="font-size: 13px; color: var(--color-text-dim); font-weight: 500;">${timeStr}</div>
             <div class="wagenda-slot-info">
-              <span class="wagenda-slot-empty">Vaga Livre (clique para agendar)</span>
+              <span class="wagenda-slot-empty" style="font-size: 10px;">Vaga Livre</span>
             </div>
           </div>
         `;
       }).join('');
     }
 
-    // Salva o intervalo de agendamento nas configurações da clínica
     async function salvarIntervaloAgenda(value) {
       workspaceIntervalMinutes = parseInt(value, 10);
       try {
@@ -3393,13 +3806,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key: 'appointment_interval', value })
         });
-        renderWorkspaceAgenda(); // Regenera slots
+        renderWorkspaceAgenda();
       } catch (err) {
         console.error('Erro ao salvar intervalo:', err);
       }
     }
 
-    // Fila Virtual: Chamar paciente
     async function chamarPacienteFila(id, phone) {
       try {
         const res = await fetch(`/api/virtual-queue/${id}/status`, {
@@ -3408,9 +3820,7 @@
           body: JSON.stringify({ status: 'in_consultation' })
         });
         if (res.ok) {
-          // Recarrega fila
           await carregarFilaVirtual();
-          // Seleciona e abre prontuário do paciente
           await selecionarPacienteWorkspace(phone);
         }
       } catch (err) {
@@ -3418,7 +3828,6 @@
       }
     }
 
-    // Fila Virtual: Finalizar consulta
     async function finalizarPacienteFila(id) {
       try {
         const res = await fetch(`/api/virtual-queue/${id}/status`, {
@@ -3434,9 +3843,8 @@
       }
     }
 
-    // Fila Virtual: Remover da fila
     async function removerPacienteFila(id) {
-      if (!confirm('Deseja realmente remover este paciente da fila virtual?')) return;
+      if (!confirm('Remover este paciente da fila?')) return;
       try {
         const res = await fetch(`/api/virtual-queue/${id}/status`, {
           method: 'POST',
@@ -3451,7 +3859,6 @@
       }
     }
 
-    // Busca rápida de pacientes na fila virtual (Dropdown)
     function filtrarPacientesQueue() {
       const q = document.getElementById('w-queue-search-input').value.toLowerCase().trim();
       const dropdown = document.getElementById('w-queue-search-dropdown');
@@ -3461,15 +3868,14 @@
         return;
       }
 
-      // Filtra de todos os prontuários da clínica
       const filtered = workspaceAllPatients.filter(p => p.name.toLowerCase().includes(q) || p.phone.includes(q));
       
       if (filtered.length === 0) {
-        dropdown.innerHTML = '<div style="padding: 10px; font-size: 11px; color: var(--color-text-dim);">Nenhum paciente encontrado.</div>';
+        dropdown.innerHTML = '<div style="padding: 8px; font-size: 10.5px; color: var(--color-text-dim);">Nenhum paciente.</div>';
       } else {
         dropdown.innerHTML = filtered.map(p => `
-          <div class="vqueue-search-item" onclick="adicionarPacienteFilaDireto('${p.phone}', '${p.name.replace(/'/g, "\\'")}')">
-            <strong>${p.name}</strong> (${p.phone})
+          <div class="vqueue-search-item" style="font-size: 11px; padding: 6px 10px;" onclick="adicionarPacienteFilaDireto('${p.phone}', '${p.name.replace(/'/g, "\'")}')">
+            <strong>${p.name}</strong>
           </div>
         `).join('');
       }
@@ -3477,7 +3883,6 @@
     }
 
     function mostrarQueueSearchDropdown() {
-      // Carrega pacientes se estiver vazio
       if (workspaceAllPatients.length === 0) {
         carregarTodosPacientesWorkspace();
       }
@@ -3488,9 +3893,7 @@
       document.getElementById('w-queue-search-dropdown').style.display = 'none';
     }
 
-    // Adiciona o paciente selecionado na fila virtual física
     async function adicionarPacienteFilaDireto(phone, name) {
-      // Limpa input
       document.getElementById('w-queue-search-input').value = '';
       ocultarQueueSearchDropdown();
 
@@ -3501,17 +3904,15 @@
           body: JSON.stringify({ phone, name })
         });
         
-        if (!res.ok) throw new Error('Erro ao adicionar paciente na fila.');
+        if (!res.ok) throw new Error('Erro ao adicionar paciente.');
         carregarFilaVirtual();
       } catch (err) {
         alert(err.message);
       }
     }
 
-    // Abre o modal de agendamento oficial a partir do clique de vaga livre
     function openQuickBooking(timeStr) {
       const dateStr = document.getElementById('w-agenda-date').value;
-      // Prepara campos do modal que já existe em dashboard.html
       const datetimeLabel = `${dateStr.split('-').reverse().join('/')} às ${timeStr}`;
       document.getElementById('booking-info-datetime').innerText = datetimeLabel;
       document.getElementById('booking-info-quota').innerText = 'PARTICULAR';
@@ -3520,7 +3921,6 @@
       document.getElementById('booking-info-time-iso').value = timeISO;
       document.getElementById('booking-info-duration').value = workspaceIntervalMinutes;
       
-      // Popula o select com a lista de pacientes do workspace
       const select = document.getElementById('booking-patient-select');
       select.innerHTML = '<option value="manual">-- Inserir Nome Manuscrito (Manual) --</option>' + 
         workspaceAllPatients.map(p => `<option value="${p.phone}" data-name="${p.name}">${p.name} (+${p.phone})</option>`).join('');
@@ -3528,10 +3928,10 @@
       document.getElementById('booking-name').value = '';
       document.getElementById('booking-phone').value = '';
 
-      // Mostra modal
       document.getElementById('booking-modal').style.display = 'flex';
     }
   </script>
+</script>
 
   <!-- Modal: Novo Agendamento -->
   <div id="booking-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center;">

@@ -40,16 +40,44 @@ ngrok http 3000 --domain=unworn-kristina-unrecorded.ngrok-free.dev
 
 ---
 
-## 💻 2. Painel Administrativo (`/setup`)
+## 💻 2. Painéis Administrativos e Workspace do Médico
 
+O sistema possui duas interfaces principais de controle protegidas por credenciais de autenticação básica (Usuário: `admin` | Senha: `drtonelli2026` — configuráveis via `.env`):
+
+### 🌐 2.1. Painel de Configurações (/setup)
 Acesse **`http://localhost:3000/setup`** no seu navegador para gerenciar e testar o bot visualmente:
-
 *   **Aba Transparência de Conversas:** Veja em tempo real todas as mensagens enviadas/recebidas e o estado atual da triagem para cada telefone.
 *   **Aba Simulação de Mensagem:** Envie mensagens de teste simulando a perspectiva do paciente diretamente pelo navegador (sem custos de API do WhatsApp).
 *   **Aba Configuração do Bot:** Altere os campos e ordem da triagem dinamicamente.
 *   **Aba Credenciais & Configurações:** Altere as chaves de API (Gemini, Google OAuth, WhatsApp Cloud API) e gerencie o arquivo `.env`.
 *   **Aba Dados & Diagnóstico:** 
-    *   **Apagar Tudo:** Botão para limpar todas as sessões e históricos no disco. **Use esta opção para reiniciar os testes do zero** e evitar que estados antigos involuntários interrompam os novos testes.
+    *   **Apagar Tudo:** Botão para limpar todas as sessões e históricos no disco. Use esta opção para reiniciar os testes do zero e evitar que estados antigos involuntários interrompam os novos testes.
+
+### 🩺 2.2. Workspace Centralizado do Médico (/dashboard)
+Acesse **`http://localhost:3000/dashboard`** no seu navegador para abrir a área de trabalho unificada do Dr. Carlos Tonelli. Ela é dividida em **três colunas interativas integradas na mesma tela**:
+
+1.  **Coluna 1 — Fila Virtual de Espera:**
+    *   Gerenciamento em tempo real dos pacientes que chegaram fisicamente à clínica.
+    *   Crachás visuais com o status atual: `Aguardando` (laranja), `Em Consulta` (roxo) ou `Atendido` (verde).
+    *   Ações rápidas:
+        *   **Chamar:** Altera o status para *Em Consulta* e carrega o prontuário do paciente automaticamente no centro (Coluna 2).
+        *   **Finalizar:** Conclui a consulta do paciente.
+        *   **Remover:** Tira o paciente da fila de espera física.
+    *   **Entrada de Paciente:** Caixa de busca com dropdown autocompletar que pesquisa no banco local e adiciona o paciente selecionado na fila de espera com um clique.
+    *   **Busca de Prontuários:** Permite pesquisar e carregar o prontuário de qualquer paciente do consultório a qualquer momento.
+
+2.  **Coluna 2 — Prontuário & Evolução Clínica:**
+    *   Exibe os dados cadastrais (Nome, Idade, Convênio, Número de Carteirinha e se aceitou os termos da clínica).
+    *   Mostra em destaque a **Queixa Principal** coletada na triagem do WhatsApp e a **Receita/Medicamento** solicitado.
+    *   **Histórico de Evoluções (Timeline):** Linha do tempo mostrando as anotações e evoluções clínicas anteriores com data, hora e autoria.
+    *   **Nova Evolução:** Caixa de texto para o médico registrar o prontuário da consulta atual. O salvamento é instantâneo e assinado automaticamente pelo *Dr. Carlos Tonelli*.
+
+3.  **Coluna 3 — Agenda Diária de Horários:**
+    *   Exibe o calendário diário organizado em grandes faixas de horários das 13h às 20h.
+    *   Os slots ocupados exibem apenas as informações críticas definidas pelo Dr. Carlos: **Nome do Paciente**, **Idade** e **Queixa/Sintoma**.
+    *   Clicar em um slot ocupado carrega na hora o prontuário correspondente no centro (Coluna 2).
+    *   Clicar em um slot vazio abre o assistente de agendamento manual rápido.
+    *   **Controle de Intervalo:** Seletor dinâmico para ajustar o tempo de intervalo das consultas (15m, 20m, 30m ou 60m). Ao mudar, o valor é persistido nas configurações gerais e a grade de horários da tela é recalculada na hora.
 
 ---
 
