@@ -3234,7 +3234,7 @@
 
     // Configura evento de Arrastar (Drag) com Snapping nas bordas
     function setupDrag(win, header) {
-      let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+      let startX = 0, startY = 0, startLeft = 0, startTop = 0;
       
       header.onmousedown = dragMouseDown;
 
@@ -3245,8 +3245,10 @@
         e.preventDefault();
         focusWindow(win.id);
 
-        pos3 = e.clientX;
-        pos4 = e.clientY;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = win.offsetLeft;
+        startTop = win.offsetTop;
         
         document.onmouseup = closeDragElement;
         document.onmousemove = elementDrag;
@@ -3258,34 +3260,35 @@
         
         if (windowStates[win.id].maximized) return;
 
-        pos1 = pos3 - e.clientX;
-        pos2 = pos4 - e.clientY;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
 
         const canvas = document.getElementById('desktop-canvas');
         const canvasRect = canvas.getBoundingClientRect();
         
-        let newTop = win.offsetTop - pos2;
-        let newLeft = win.offsetLeft - pos1;
+        let virtualTop = startTop + deltaY;
+        let virtualLeft = startLeft + deltaX;
+
+        let visualTop = virtualTop;
+        let visualLeft = virtualLeft;
 
         const snapThreshold = 15;
-        if (newLeft < snapThreshold) newLeft = 0;
-        if (newTop < snapThreshold) newTop = 0;
-        if (Math.abs((newLeft + win.offsetWidth) - canvasRect.width) < snapThreshold) {
-          newLeft = canvasRect.width - win.offsetWidth;
+        if (visualLeft < snapThreshold) visualLeft = 0;
+        if (visualTop < snapThreshold) visualTop = 0;
+        if (Math.abs((visualLeft + win.offsetWidth) - canvasRect.width) < snapThreshold) {
+          visualLeft = canvasRect.width - win.offsetWidth;
         }
-        if (Math.abs((newTop + win.offsetHeight) - canvasRect.height) < snapThreshold) {
-          newTop = canvasRect.height - win.offsetHeight;
+        if (Math.abs((visualTop + win.offsetHeight) - canvasRect.height) < snapThreshold) {
+          visualTop = canvasRect.height - win.offsetHeight;
         }
 
-        if (newTop < 0) newTop = 0;
-        if (newLeft < 0) newLeft = 0;
-        if (newLeft > canvasRect.width - 100) newLeft = canvasRect.width - 100;
-        if (newTop > canvasRect.height - 50) newTop = canvasRect.height - 50;
+        if (visualTop < 0) visualTop = 0;
+        if (visualLeft < 0) visualLeft = 0;
+        if (visualLeft > canvasRect.width - 100) visualLeft = canvasRect.width - 100;
+        if (visualTop > canvasRect.height - 50) visualTop = canvasRect.height - 50;
 
-        win.style.top = newTop + "px";
-        win.style.left = newLeft + "px";
+        win.style.top = visualTop + "px";
+        win.style.left = visualLeft + "px";
 
         windowStates[win.id].top = win.style.top;
         windowStates[win.id].left = win.style.left;
