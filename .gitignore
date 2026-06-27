@@ -45,3 +45,20 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local SQLite database
+database.sqlite
+database.sqlite-journal
+
+# WhatsApp conversations and dumps containing sensitive data
+*.txt
+*.txt.bak
+
+# Sensitive meeting minutes and business models
+MODELO_NEGOCIO.md
+PAUTA_REUNIAO.md
+GUIA_COLETA_WHATSAPP.md
+
+# Run batch files
+iniciar.bat
+iniciar_producao.bat

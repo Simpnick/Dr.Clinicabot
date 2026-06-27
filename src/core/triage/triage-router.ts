@@ -331,6 +331,10 @@ async function runValidationAgent(
   const choicesText = currentField.choices ? 
     `Opções válidas para este campo: ${currentField.choices.join(', ')}.` : '';
 
+  const isPrescription = session.data && session.data['flow'] === 'prescription';
+  const validationFlowRule = isPrescription ? 
+    `\nATENÇÃO: O fluxo atual é SOLICITAÇÃO DE RECEITA. Não considere solicitações de receita como FAQ neste momento. O paciente está apenas tentando preencher os dados do formulário de receita. Se o paciente fornecer o nome dele ou o medicamento desejado, considere válido.\n` : '';
+
   const VALIDATION_PROMPT = `Você é o Agente de Validação e Decisão do Chatbot Clínico da ${triageConfig.clinicName}.
 Sua tarefa é analisar a ÚLTIMA mensagem do paciente e decidir o que fazer com base no campo atualmente sendo coletado.
 
@@ -352,7 +356,7 @@ ${collectedDataSummary}
 
 FAQ E REGRAS DA CLÍNICA (para detectar se o paciente está fazendo uma pergunta de FAQ):
 ${triageConfig.faqs}
-
+${validationFlowRule}
 CAMPOS DISPONÍVEIS PARA CORREÇÃO:
 ${triageConfig.fields.map(f => `- "${f.key}": ${f.label}`).join('\n')}
 
@@ -484,6 +488,15 @@ Destaque que a recepção confirmará e enviará uma nova mensagem assim que est
     nextActionInstruction = `Reconheça a informação fornecida com naturalidade (se aplicável). Em seguida, colete APENAS E EXCLUSIVAMENTE o próximo campo: "${currentField.label}". Para fazer isso, varie, reescreva e humanize de forma natural e amigável a pergunta base ("${currentField.questionPrompt}"), sem copiar a pergunta base ao pé da letra. É EXPRESSAMENTE PROIBIDO solicitar, perguntar ou adiantar qualquer outro dado ou campo futuro (como convênio, carteirinha, idade, queixa, etc.) nesta mensagem. Pergunte APENAS pelo campo solicitado.`;
   }
 
+  const isPrescription = session.data && session.data['flow'] === 'prescription';
+  const flowRules = isPrescription ? `
+REGRAS DO FLUXO DE RECEITA (EM EXECUÇÃO):
+- O paciente está no fluxo dedicado de SOLICITAÇÃO DE RECEITA. É estritamente PROIBIDO pedir dados sobre agendamento de consulta, convênios, carteirinhas, idade, queixa principal, ou concordância com termos de agendamento de consulta.
+- Colete e valide APENAS o Nome Completo e o Medicamento/Dosagem.
+- Certifique-se de lembrar o paciente sobre a taxa administrativa de envio para receitas fora de consulta, conforme as regras da clínica.
+- Se o campo de receita (medication) for concluído, confirme ao paciente de forma acolhedora que a solicitação foi encaminhada para assinatura digital do Dr. Carlos.
+` : '';
+
   const DIALOGUE_PROMPT = `Você é o Assistente Virtual da ${triageConfig.clinicName} (${triageConfig.doctorName}).
 Use um tom profissional, sério, respeitoso, formal e acolhedor. NUNCA utilize emojis ou expressões informais.
 Não insira exemplos ou exemplos práticos em suas perguntas.
@@ -498,7 +511,7 @@ REGRAS CRÍTICAS DE SEGURANÇA:
 
 FAQ E REGRAS DA CLÍNICA:
 ${triageConfig.faqs}
-
+${flowRules}
 DADOS JÁ COLETADOS DO PACIENTE:
 ${collectedDataSummary}
 
@@ -536,6 +549,47 @@ FORMATAÇÃO WHATSAPP OBRIGATÓRIA:
   } catch (error: any) {
     console.error('[Triage Router] Erro no Agente de Diálogo:', error.message);
     throw error;
+  }
+}
+
+async function classifyPatientIntent(
+  messageText: string,
+  triageConfig: TriageConfig
+): Promise<'consulta' | 'laudo_atestado' | 'receita' | 'faq' | 'saudacao'> {
+  const prompt = `Você é o Classificador de Intenção do Chatbot Clínico da ${triageConfig.clinicName}.
+Sua tarefa é classificar o objetivo principal da primeira mensagem enviada pelo paciente à clínica.
+
+CATEGORIAS POSSÍVEIS:
+1. "saudacao": Se a mensagem for apenas um cumprimento (ex: "oi", "olá", "bom dia", "boa tarde", "tudo bem?").
+2. "consulta": Se o paciente quer marcar, agendar, reagendar, confirmar ou cancelar uma consulta (ex: "quero marcar consulta", "tem horário?", "preciso agendar com o doutor", "quando tem vaga?", "quero marcar de novo").
+3. "laudo_atestado": Se o paciente quer um laudo, atestado, declaração, relatório médico ou CID (ex: "preciso de um laudo", "me manda o atestado", "unimed negou meu exame e preciso de laudo", "preciso de declaração").
+4. "receita": Se o paciente quer uma receita médica, renovar receita, caneta de emagrecimento (Wegovy, Mounjaro, Ozempic) ou envio de receita (ex: "preciso renovar minha receita", "pede a receita pro doutor", "queria a receita do wegovy").
+5. "faq": Se o paciente faz uma pergunta de informação geral sobre convênios, endereço, valores ou preparo de exames (ex: "qual o endereço?", "onde fica?", "atende unimed?", "qual o valor da consulta particular?", "como faço preparo do exame de cortisol?").
+
+Mensagem do paciente: "${messageText}"
+
+Retorne APENAS uma das seguintes palavras-chave em letras minúsculas, sem pontuação ou texto adicional:
+- saudacao
+- consulta
+- laudo_atestado
+- receita
+- faq`;
+
+  try {
+    const history: ChatMessage[] = [{ role: 'user', content: messageText }];
+    const response = await generateLLMResponse(history, prompt, 0.1, false);
+    const cleanResponse = response.trim().toLowerCase();
+    
+    if (cleanResponse.includes('saudacao')) return 'saudacao';
+    if (cleanResponse.includes('laudo_atestado')) return 'laudo_atestado';
+    if (cleanResponse.includes('receita')) return 'receita';
+    if (cleanResponse.includes('faq')) return 'faq';
+    if (cleanResponse.includes('consulta')) return 'consulta';
+    
+    return 'consulta'; // fallback
+  } catch (error) {
+    console.error('[Intent Classifier] Erro ao classificar intenção:', error);
+    return 'consulta'; // fallback seguro
   }
 }
 
@@ -594,6 +648,20 @@ export async function routeTriageMessage(session: TriageSession, messageText: st
     return await runDialogueAgent(history, session, triageConfig, nextField, fakeValidationResult, false);
   }
 
+  // Se o estado for AWAITING_LAUDO_CONFIRM, processamos a resposta do paciente
+  if (session.state === 'AWAITING_LAUDO_CONFIRM') {
+    const isYes = ['sim', 'quero', 'pode', 'vamos', 'ok', 'agendar', 'marcar', 'claro', 'de acordo', 'agende'].some(w => textLower.includes(w));
+    if (isYes) {
+      session.state = 'START';
+      session.data['flow'] = 'booking';
+      // Continua para a triagem normal coletando o nome
+    } else {
+      session.state = 'START';
+      delete session.data['flow'];
+      return `Perfeito. Se precisar de algo mais ou desejar agendar uma consulta futuramente, estou à disposição. Tenha um ótimo dia!`;
+    }
+  }
+
   try {
     // Carrega histórico
     const history = getRecentHistory(cleanPhone, 10);
@@ -612,8 +680,50 @@ export async function routeTriageMessage(session: TriageSession, messageText: st
       return triageConfig.welcomeMessage;
     }
 
-    // Se ainda está em START (mas não é só saudação), determina o estado inicial
+    // Se ainda está em START (mas não é só saudação), determina o estado inicial e o fluxo
     if (session.state === 'START') {
+      if (!session.data['flow'] || session.data['flow'] === 'faq') {
+        const intent = await classifyPatientIntent(sanitization.sanitized, triageConfig);
+        console.log(`[Triage Router] Intenção detectada no início: ${intent}`);
+        
+        if (intent === 'saudacao') {
+          return triageConfig.welcomeMessage;
+        }
+        
+        if (intent === 'faq') {
+          session.data['flow'] = 'faq';
+          const fakeValidation: ValidationResult = {
+            isValid: false,
+            extractedValue: null,
+            errorMessage: '',
+            isFAQ: true,
+            isCorrection: false,
+            correctedFieldKey: '',
+            correctedFieldValue: null
+          };
+          const response = await runDialogueAgent(history, session, triageConfig, null, fakeValidation, false);
+          // Reseta a sessão para continuar no estado START para o próximo contato
+          session.state = 'START';
+          delete session.data['flow'];
+          return response;
+        }
+        
+        if (intent === 'laudo_atestado') {
+          session.state = 'AWAITING_LAUDO_CONFIRM';
+          session.data['flow'] = 'document';
+          return `Olá! Os atestados médicos, laudos e preenchimento de documentos só podem ser emitidos pelo Dr. Carlos Tonelli durante uma consulta médica agendada. Não fazemos a emissão desses documentos fora das consultas.
+
+Gostaria de agendar uma consulta para fazer a solicitação ao médico?`;
+        }
+        
+        if (intent === 'receita') {
+          session.data['flow'] = 'prescription';
+          console.log(`[Triage Router] Redirecionando para fluxo dedicado de Receitas.`);
+        } else {
+          session.data['flow'] = 'booking';
+        }
+      }
+      
       updateDynamicSessionState(session, triageConfig);
     }
 

@@ -456,6 +456,33 @@
       box-shadow: 0 0 8px var(--accent-purple-glow);
     }
 
+    .triage-checklist {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px 12px;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      padding: 10px;
+      background-color: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--color-text-dim);
+    }
+    .checklist-item.checked {
+      color: var(--color-text-muted);
+    }
+    .checklist-icon {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+
     .card-actions {
       display: flex;
       gap: 8px;
@@ -465,6 +492,23 @@
       flex: 1;
       padding: 8px 12px;
       font-size: 11px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--color-text-dim);
+      font-size: 13px;
+      font-family: var(--font-sans);
+      width: 100%;
+      height: 100%;
+      min-height: 150px;
+      box-sizing: border-box;
+      line-height: 1.5;
     }
 
     /* ────────────────────────────────────────────────────────
@@ -1183,7 +1227,260 @@
     }
     @keyframes badge-pulse {
       from { transform: scale(1); }
-      to { transform: scale(1.2); }
+      }
+    
+    /* ────────────────────────────────────────────────────────
+       ESTILOS WORKSPACE DO MÉDICO (Layout de 3 Colunas)
+       ──────────────────────────────────────────────────────── */
+    .workspace-layout {
+      display: grid;
+      grid-template-columns: 325px 1fr 340px;
+      gap: 20px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .workspace-col {
+      background-color: var(--bg-sidebar);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Coluna 1: Fila Virtual */
+    .vqueue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .vqueue-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: var(--transition-fast);
+      position: relative;
+    }
+    .vqueue-card:hover {
+      border-color: var(--border-color-active);
+    }
+    .vqueue-card.in_consultation {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 10px var(--accent-purple-glow);
+    }
+    .vqueue-card.completed {
+      opacity: 0.6;
+    }
+
+    .vqueue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .vqueue-name {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 13.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 170px;
+    }
+    .vqueue-time {
+      font-size: 10px;
+      color: var(--color-text-dim);
+    }
+    .vqueue-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .vqueue-badge.waiting {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+    }
+    .vqueue-badge.in_consultation {
+      background-color: var(--accent-purple-glow);
+      color: #c084fc;
+    }
+    .vqueue-badge.completed {
+      background-color: var(--accent-emerald-dim);
+      color: var(--accent-emerald);
+    }
+
+    .vqueue-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .vqueue-actions .btn {
+      padding: 5px 10px;
+      font-size: 10px;
+      flex: 1;
+    }
+
+    /* Coluna 2: Prontuário Integrado */
+    .workspace-prontuario-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .workspace-ficha-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* Coluna 3: Agenda Diária */
+    .wagenda-header {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      flex-shrink: 0;
+    }
+    .wagenda-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .wagenda-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--color-text-main);
+    }
+    .wagenda-interval-select {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 6px;
+      outline: none;
+      cursor: pointer;
+    }
+    .wagenda-interval-select:focus {
+      border-color: var(--accent-purple);
+    }
+
+    .wagenda-slots {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 4px;
+    }
+
+    .wagenda-slot-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      align-items: center;
+      gap: 12px;
+      transition: var(--transition-fast);
+      cursor: pointer;
+      text-align: left;
+    }
+    .wagenda-slot-card:hover {
+      border-color: var(--border-color-active);
+      background-color: var(--bg-card-hover);
+    }
+    .wagenda-slot-time {
+      font-family: var(--font-display);
+      font-weight: 850;
+      font-size: 15px;
+      color: var(--accent-purple);
+    }
+    .wagenda-slot-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .wagenda-slot-patient-name {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--color-text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .wagenda-slot-patient-desc {
+      font-size: 11px;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .wagenda-slot-empty {
+      color: var(--color-text-dim);
+      font-size: 11.5px;
+      font-style: italic;
+    }
+
+    /* Dropdown flutuante de busca de paciente */
+    .vqueue-search-dropdown-container {
+      position: relative;
+      width: 100%;
+    }
+    .vqueue-search-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background-color: #121824;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      margin-top: 4px;
+      display: none;
+    }
+    .vqueue-search-item {
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      transition: var(--transition-fast);
+      text-align: left;
+    }
+    .vqueue-search-item:hover {
+      background-color: var(--accent-purple);
+      color: white;
     }
   </style>
 </head>
@@ -1202,6 +1499,12 @@
       </div>
       
       <nav class="nav-menu">
+        <button onclick="switchTab('workspace')" id="tab-btn-workspace" class="nav-item" title="Área de Trabalho do Médico (Workspace)">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          </svg>
+        </button>
+
         <button onclick="switchTab('triage')" id="tab-btn-triage" class="nav-item active" title="Fila de Triagem">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 11l3 3L22 4"></path>
@@ -1358,6 +1661,9 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                   Abrir no WhatsApp
                 </a>
+                <button onclick="limparConversaAtual()" class="btn btn-secondary" style="border-color: rgba(239, 68, 68, 0.4); color: #ef4444;" title="Limpar Histórico e Sessão">
+                  🗑️ Limpar Conversa
+                </button>
               </div>
             </div>
 
@@ -1454,7 +1760,12 @@
                   <h2 class="prontuario-title" id="p-name">Nome do Paciente</h2>
                   <div class="prontuario-meta" id="p-phone">Telefone: 5548... | Triado em: --/--/----</div>
                 </div>
-                <button onclick="focarConversa()" class="btn btn-secondary">💬 Ir para Conversa</button>
+                <div style="display: flex; gap: 8px;">
+                  <button onclick="focarConversa()" class="btn btn-secondary">💬 Ir para Conversa</button>
+                  <button onclick="excluirProntuarioAtual()" class="btn btn-secondary" style="border-color: rgba(239, 68, 68, 0.4); color: #ef4444;" title="Excluir Prontuário Clínico">
+                    🗑️ Excluir Prontuário
+                  </button>
+                </div>
               </div>
 
               <div class="prontuario-content">
@@ -1518,6 +1829,116 @@
         </div>
       </div>
 
+      <!-- ────────────────────────────────────────────────────────
+           CONTEÚDO ABA 5: Workspace do Médico (Fila, Prontuário, Agenda)
+           ──────────────────────────────────────────────────────── -->
+      <div id="tab-content-workspace" class="tab-content">
+        <div class="workspace-layout">
+          
+          <!-- Coluna 1: Fila Virtual & Busca -->
+          <div class="workspace-col" style="width: 325px;">
+            <div class="panel-header">
+              <h2>🚶 Fila de Espera Virtual</h2>
+              <span class="panel-header-badge" id="w-badge-queue-count">0</span>
+            </div>
+            
+            <!-- Adicionar Paciente à Fila -->
+            <div class="vqueue-search-dropdown-container">
+              <input type="text" placeholder="Adicionar paciente à fila..." class="chat-search-input" id="w-queue-search-input" oninput="filtrarPacientesQueue()" onfocus="mostrarQueueSearchDropdown()" onblur="setTimeout(ocultarQueueSearchDropdown, 200)">
+              <div class="vqueue-search-dropdown" id="w-queue-search-dropdown"></div>
+            </div>
+
+            <!-- Fila Virtual List -->
+            <div class="vqueue-list" id="w-queue-list-container">
+              <div class="empty-state">Nenhum paciente na fila física.</div>
+            </div>
+            
+            <div class="panel-header" style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+              <h2>🗂️ Pesquisa de Prontuários</h2>
+            </div>
+            <input type="text" placeholder="Pesquisar prontuário..." class="chat-search-input" id="w-db-search-input" oninput="filtrarPacientesWorkspace()">
+            
+            <div class="db-patient-list" id="w-db-patient-list-container" style="max-height: 250px; overflow-y: auto;">
+              <div class="empty-state">Pesquise para listar.</div>
+            </div>
+          </div>
+          
+          <!-- Coluna 2: Prontuário Integrado -->
+          <div class="workspace-col" style="flex: 1;">
+            <div class="panel-header">
+              <h2>📋 Prontuário Eletrônico Completo</h2>
+            </div>
+            
+            <!-- Default State: Sem prontuário ativo -->
+            <div class="empty-state" id="w-prontuario-empty-state" style="display: flex;">
+              <span>🗂️</span>
+              Selecione um paciente na fila, na agenda ou realize uma pesquisa para visualizar e editar o prontuário.
+            </div>
+
+            <!-- Prontuário Ativo -->
+            <div class="workspace-prontuario-container" id="w-prontuario-panel" style="display: none;">
+              <div class="workspace-ficha-card">
+                <div class="prontuario-header-title" style="font-family: var(--font-display); font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--color-text-main);" id="w-p-name">Nome do Paciente</div>
+                <div style="font-size: 11px; color: var(--color-text-muted); margin-bottom: 14px;" id="w-p-phone">Telefone: --</div>
+                
+                <div class="ficha-details-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 12px;">
+                  <div><strong>Idade:</strong> <span id="w-p-age">--</span></div>
+                  <div><strong>Convênio:</strong> <span id="w-p-plan">--</span></div>
+                  <div><strong>Carteirinha:</strong> <span id="w-p-card">--</span></div>
+                  <div><strong>Termos Resolutivos:</strong> <span id="w-p-terms">--</span></div>
+                </div>
+                
+                <div style="font-size: 12.5px; margin-top: 14px; padding: 10px; background-color: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid var(--border-color);">
+                  <strong>Queixa Principal (Triagem):</strong>
+                  <div style="margin-top: 6px; color: var(--color-text-muted);" id="w-p-complaint">--</div>
+                </div>
+
+                <div style="font-size: 12.5px; margin-top: 10px; padding: 10px; background-color: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid var(--border-color);">
+                  <strong>Necessidade de Receita / Medicamento:</strong>
+                  <div style="margin-top: 6px; color: var(--color-text-muted);" id="w-p-medication">--</div>
+                </div>
+              </div>
+
+              <!-- Evoluções do Prontuário -->
+              <div class="evolucao-panel" style="background-color: var(--bg-card); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 14px;">
+                <div class="ficha-section-title" style="font-family: var(--font-display); font-size: 14px; font-weight: 600;">Evolução Clínica / Anotações de Consulta</div>
+                
+                <form onsubmit="adicionarNotaEvolucaoWorkspace(event)" class="note-input-form" style="display: flex; flex-direction: column; gap: 10px;">
+                  <textarea placeholder="Digite aqui as notas da consulta atual, prescrição ou evolução do prontuário..." class="note-textarea" id="w-note-text-field" style="width: 100%; height: 100px; background-color: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; color: white; padding: 10px; font-size: 13px; outline: none; resize: none;" required></textarea>
+                  <button type="submit" class="btn btn-primary" style="align-self: flex-end; padding: 8px 16px;">Salvar Nota de Evolução</button>
+                </form>
+
+                <div class="evolucao-timeline" id="w-notes-timeline-container" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; max-height: 250px; overflow-y: auto;">
+                  <div class="empty-state" style="border: none; padding: 10px 0;">Nenhuma evolução anotada.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Coluna 3: Agenda Diária -->
+          <div class="workspace-col" style="width: 340px;">
+            <div class="wagenda-header">
+              <div class="wagenda-controls">
+                <span class="wagenda-title">📅 Agenda Diária</span>
+                <select class="wagenda-interval-select" id="w-interval-select" onchange="salvarIntervaloAgenda(this.value)">
+                  <option value="15">Intervalo: 15 min</option>
+                  <option value="20">Intervalo: 20 min</option>
+                  <option value="30">Intervalo: 30 min</option>
+                  <option value="60">Intervalo: 60 min</option>
+                </select>
+              </div>
+              <input type="date" class="chat-search-input" id="w-agenda-date" onchange="carregarAgendaWorkspace()" style="font-size: 12px; font-weight: 500;">
+            </div>
+
+            <!-- Slots da Agenda -->
+            <div class="wagenda-slots" id="w-agenda-slots-container">
+              <div class="empty-state">Carregando horários...</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </main>
 
   </div>
@@ -1563,12 +1984,16 @@
         descHeader.innerText = 'Consulte o banco local SQLite de prontuários clínicos dos pacientes triados.';
       } else if (tabName === 'calendar') {
         descHeader.innerText = 'Consulte a agenda do Dr. Carlos André Tonelli, verifique a disponibilidade e agende consultas.';
+      } else if (tabName === 'workspace') {
+        descHeader.innerText = 'Área de trabalho do Dr. Carlos André Tonelli. Gerencie a fila virtual, consulte prontuários e visualize a agenda diária.';
       }
 
       if (tabName === 'db') {
         fetchPatients();
       } else if (tabName === 'calendar') {
         fetchCalendarAppointments();
+      } else if (tabName === 'workspace') {
+        initWorkspace();
       }
     }
 
@@ -1611,6 +2036,9 @@
           fetchPatients();
         } else if (activeTab === 'calendar') {
           fetchCalendarAppointments();
+        } else if (activeTab === 'workspace') {
+          carregarFilaVirtual();
+          carregarAgendaWorkspace();
         }
       } catch (err) {
         console.error('Erro na requisição periódica:', err);
@@ -1666,6 +2094,36 @@
           }
           const pct = Math.min(Math.round((filled / fieldsTotal) * 100), 95);
           
+          const hasName = c.data && c.data.name !== undefined && c.data.name !== null && c.data.name !== '';
+          const hasExisting = c.data && c.data.isExistingPatient !== undefined && c.data.isExistingPatient !== null;
+          const hasAge = c.data && c.data.age !== undefined && c.data.age !== null;
+          const hasPlan = c.data && c.data.healthPlan !== undefined && c.data.healthPlan !== null && c.data.healthPlan !== '';
+          const hasCard = c.data && (c.data.cardNumber !== undefined && c.data.cardNumber !== null && c.data.cardNumber !== '' || c.data.healthPlan === 'Particular');
+          const hasComplaint = c.data && c.data.complaint !== undefined && c.data.complaint !== null && c.data.complaint !== '';
+          const hasMed = c.data && c.data.medication !== undefined && c.data.medication !== null && c.data.medication !== '';
+          const hasTerms = c.data && c.data.agreedToTerms !== undefined && c.data.agreedToTerms !== null;
+
+          const renderItem = (label, isChecked) => {
+            const icon = isChecked 
+              ? `<svg class="checklist-icon" viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>` 
+              : `<svg class="checklist-icon" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><circle cx="12" cy="12" r="10"></circle></svg>`;
+            const itemClass = isChecked ? 'checklist-item checked' : 'checklist-item';
+            return `<div class="${itemClass}">${icon}<span>${label}</span></div>`;
+          };
+
+          const checklistHtml = `
+            <div class="triage-checklist">
+              ${renderItem('Nome Completo', hasName)}
+              ${renderItem('Histórico (Paciente)', hasExisting)}
+              ${renderItem('Idade', hasAge)}
+              ${renderItem('Convênio', hasPlan)}
+              ${renderItem('Carteirinha', hasCard)}
+              ${renderItem('Queixa Principal', hasComplaint)}
+              ${renderItem('Receita Medicamento', hasMed)}
+              ${renderItem('Concordou Termos', hasTerms)}
+            </div>
+          `;
+          
           return `
             <div class="patient-card">
               <div class="card-title-row">
@@ -1682,6 +2140,7 @@
               <div class="progress-bar-container">
                 <div class="progress-bar" style="width: ${pct}%"></div>
               </div>
+              ${checklistHtml}
               <div class="card-actions">
                 <button onclick="selecionarConversaDirect('${c.phone}')" class="btn btn-primary">
                   Ver Conversa
@@ -1962,6 +2421,64 @@
     function focarConversa() {
       if (currentSelectedPatientPhone) {
         selecionarConversaDirect(currentSelectedPatientPhone);
+      }
+    }
+
+    // Remove o prontuário e evoluções do SQLite
+    async function excluirProntuarioAtual() {
+      if (!currentSelectedPatientPhone) return;
+      if (!confirm('Deseja realmente excluir o prontuário e todas as notas de evolução deste paciente do banco de dados? Esta ação é definitiva.')) return;
+      
+      try {
+        const res = await fetch('/api/delete-patient-record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: currentSelectedPatientPhone })
+        });
+        
+        if (!res.ok) throw new Error('Erro ao excluir prontuário.');
+        const data = await res.json();
+        alert(data.message);
+        
+        // Limpa seleção e fecha painel
+        currentSelectedPatientPhone = null;
+        document.getElementById('db-prontuario-panel').style.display = 'none';
+        document.getElementById('db-select-prompt').style.display = 'flex';
+        
+        // Recarrega lista lateral
+        fetchPatients();
+      } catch (err) {
+        alert('Erro ao excluir prontuário: ' + err.message);
+      }
+    }
+
+    // Limpa a conversa atual do WhatsApp (histórico de mensagens e sessão)
+    async function limparConversaAtual() {
+      if (!currentSelectedChatPhone) return;
+      if (!confirm('Deseja realmente apagar o histórico de mensagens e a sessão de triagem ativa deste telefone?')) return;
+      
+      try {
+        const res = await fetch('/api/clear-patient-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: currentSelectedChatPhone })
+        });
+        
+        if (!res.ok) throw new Error('Erro ao limpar conversa.');
+        const data = await res.json();
+        alert(data.message);
+        
+        // Reseta chat aberto
+        currentSelectedChatPhone = null;
+        document.getElementById('chat-active-header').style.display = 'none';
+        document.getElementById('chat-messages-log').style.display = 'none';
+        document.getElementById('chat-input-container').style.display = 'none';
+        document.getElementById('chat-select-prompt').style.display = 'flex';
+        
+        // Recarrega fila
+        fetchData();
+      } catch (err) {
+        alert('Erro ao limpar conversa: ' + err.message);
       }
     }
 
@@ -2553,6 +3070,466 @@
     function formatTime(isoString) {
       const date = new Date(isoString);
       return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ────────────────────────────────────────────────────────
+    // LÓGICA DO WORKSPACE DO MÉDICO
+    // ────────────────────────────────────────────────────────
+    let workspaceSelectedPatientPhone = null;
+    let workspaceAllPatients = [];
+    let workspaceVirtualQueue = [];
+    let workspaceAgendaAppointments = [];
+    let workspaceIntervalMinutes = 15;
+
+    // Inicialização do Workspace
+    async function initWorkspace() {
+      // 1. Configura data de hoje como padrão no calendário do workspace se não estiver preenchido
+      const dateInput = document.getElementById('w-agenda-date');
+      if (!dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+      }
+
+      // 2. Busca o intervalo padrão do banco
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const settings = await res.json();
+          if (settings.appointment_interval) {
+            workspaceIntervalMinutes = parseInt(settings.appointment_interval, 10);
+            document.getElementById('w-interval-select').value = workspaceIntervalMinutes;
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao carregar configurações de intervalo:', err);
+      }
+
+      // 3. Carrega fila, agenda e pacientes em paralelo
+      await Promise.all([
+        carregarFilaVirtual(),
+        carregarAgendaWorkspace(),
+        carregarTodosPacientesWorkspace()
+      ]);
+    }
+
+    // Carrega Fila Virtual
+    async function carregarFilaVirtual() {
+      try {
+        const res = await fetch('/api/virtual-queue');
+        if (!res.ok) throw new Error('Erro ao obter fila virtual');
+        workspaceVirtualQueue = await res.json();
+        
+        // Atualiza contagem
+        document.getElementById('w-badge-queue-count').innerText = workspaceVirtualQueue.length;
+        
+        const container = document.getElementById('w-queue-list-container');
+        if (workspaceVirtualQueue.length === 0) {
+          container.innerHTML = '<div class="empty-state">Nenhum paciente na fila física.</div>';
+          return;
+        }
+
+        container.innerHTML = workspaceVirtualQueue.map(item => {
+          const cardClass = item.status === 'in_consultation' ? 'in_consultation' : (item.status === 'completed' ? 'completed' : '');
+          
+          let statusLabel = 'Aguardando';
+          let statusBadgeClass = 'waiting';
+          if (item.status === 'in_consultation') {
+            statusLabel = 'Em Consulta';
+            statusBadgeClass = 'in_consultation';
+          } else if (item.status === 'completed') {
+            statusLabel = 'Atendido';
+            statusBadgeClass = 'completed';
+          }
+
+          let actionButtons = '';
+          if (item.status === 'waiting') {
+            actionButtons = `
+              <button onclick="chamarPacienteFila('${item.id}', '${item.patient_phone}')" class="btn btn-primary">Chamar</button>
+              <button onclick="removerPacienteFila('${item.id}')" class="btn btn-secondary">&times;</button>
+            `;
+          } else if (item.status === 'in_consultation') {
+            actionButtons = `
+              <button onclick="finalizarPacienteFila('${item.id}')" class="btn btn-emerald">Finalizar</button>
+              <button onclick="removerPacienteFila('${item.id}')" class="btn btn-secondary">&times;</button>
+            `;
+          } else {
+            actionButtons = `
+              <button onclick="removerPacienteFila('${item.id}')" class="btn btn-secondary" style="flex: 1;">Remover da Fila</button>
+            `;
+          }
+
+          const arrivalDate = new Date(item.arrival_time);
+          const timeStr = arrivalDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+          return `
+            <div class="vqueue-card ${cardClass}">
+              <div class="vqueue-header">
+                <span class="vqueue-name" title="${item.patient_name}">${item.patient_name}</span>
+                <span class="vqueue-badge ${statusBadgeClass}">${statusLabel}</span>
+              </div>
+              <div class="vqueue-time">Chegada: <strong>${timeStr}</strong></div>
+              <div class="vqueue-actions">${actionButtons}</div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error(err.message);
+      }
+    }
+
+    // Carrega todos os pacientes do banco local para a busca do workspace
+    async function carregarTodosPacientesWorkspace() {
+      try {
+        const res = await fetch('/api/patients');
+        if (res.ok) {
+          workspaceAllPatients = await res.json();
+          renderWorkspacePatientsList(workspaceAllPatients);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar banco de pacientes:', err);
+      }
+    }
+
+    // Filtra pacientes na pesquisa do prontuário
+    function filtrarPacientesWorkspace() {
+      const q = document.getElementById('w-db-search-input').value.toLowerCase().trim();
+      if (!q) {
+        renderWorkspacePatientsList([]); // Só mostra se pesquisar
+        return;
+      }
+      const filtered = workspaceAllPatients.filter(p => p.name.toLowerCase().includes(q) || p.phone.includes(q));
+      renderWorkspacePatientsList(filtered);
+    }
+
+    // Renderiza a lista de pesquisa do prontuário
+    function renderWorkspacePatientsList(patients) {
+      const container = document.getElementById('w-db-patient-list-container');
+      if (patients.length === 0) {
+        const q = document.getElementById('w-db-search-input').value.trim();
+        container.innerHTML = `<div class="empty-state">${q ? 'Nenhum paciente encontrado.' : 'Pesquise para listar prontuários.'}</div>`;
+        return;
+      }
+
+      container.innerHTML = patients.map(p => {
+        const activeClass = p.phone === workspaceSelectedPatientPhone ? 'active' : '';
+        return `
+          <button onclick="selecionarPacienteWorkspace('${p.phone}')" class="db-patient-item ${activeClass}" style="padding: 10px 14px; border-radius: 8px; margin-bottom: 4px;">
+            <div class="db-patient-avatar" style="width: 32px; height: 32px; font-size: 11px;">${p.name.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}</div>
+            <div class="db-patient-content" style="flex: 1; min-width: 0;">
+              <div class="db-patient-name" style="font-size: 12.5px;">${p.name}</div>
+              <div class="db-patient-desc" style="font-size: 10.5px;">${p.age} anos | ${p.health_plan}</div>
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Seleciona paciente no Workspace e carrega o Prontuário Integrado no centro
+    async function selecionarPacienteWorkspace(phone) {
+      workspaceSelectedPatientPhone = phone;
+      
+      // Destaca na lista de pesquisa
+      document.querySelectorAll('#w-db-patient-list-container .db-patient-item').forEach(item => item.classList.remove('active'));
+      
+      try {
+        const res = await fetch(`/api/patients/${phone}`);
+        if (!res.ok) throw new Error('Falha ao carregar prontuário');
+        const data = await res.json();
+        
+        // Exibe painel e esconde placeholder
+        document.getElementById('w-prontuario-empty-state').style.display = 'none';
+        document.getElementById('w-prontuario-panel').style.display = 'block';
+
+        // Preenche campos
+        document.getElementById('w-p-name').innerText = data.patient.name;
+        document.getElementById('w-p-phone').innerHTML = `Telefone: <strong>+${data.patient.phone}</strong> | Registro: ${new Date(data.patient.completed_at).toLocaleString('pt-BR')}`;
+        document.getElementById('w-p-age').innerText = `${data.patient.age} anos`;
+        document.getElementById('w-p-plan').innerText = data.patient.health_plan;
+        document.getElementById('w-p-card').innerText = data.patient.card_number || 'Não informado / Não aplicável';
+        document.getElementById('w-p-terms').innerText = data.patient.agreed_to_terms === 1 ? 'Sim, concorda com formato resolutivo' : 'Não de acordo';
+        document.getElementById('w-p-complaint').innerText = data.patient.complaint || 'Nenhuma queixa descrita na triagem.';
+        document.getElementById('w-p-medication').innerText = data.patient.medication || 'Não solicitou receita antecipada.';
+
+        // Renderiza linha do tempo de notas de evolução
+        renderWorkspaceNotesTimeline(data.notes);
+        
+        // Recarrega lista de busca para manter seleção visual
+        filtrarPacientesWorkspace();
+      } catch (err) {
+        alert('Erro ao carregar prontuário: ' + err.message);
+      }
+    }
+
+    // Renderiza linha do tempo de evoluções clínicas no workspace
+    function renderWorkspaceNotesTimeline(notes) {
+      const container = document.getElementById('w-notes-timeline-container');
+      if (!notes || notes.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="border: none; padding: 10px 0;">Nenhuma evolução clínica registrada neste prontuário.</div>';
+        return;
+      }
+
+      container.innerHTML = notes.map(n => `
+        <div class="timeline-node" style="padding-left: 10px; border-left: 2px solid var(--accent-purple); position: relative; margin-bottom: 8px;">
+          <div style="font-size: 11px; color: var(--color-text-dim); display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <strong>${n.author || 'Dr. Carlos Tonelli'}</strong>
+            <span>${new Date(n.created_at).toLocaleString('pt-BR')}</span>
+          </div>
+          <div style="font-size: 12.5px; color: var(--color-text-main); line-height: 1.4; background-color: rgba(255,255,255,0.01); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02);">${n.content}</div>
+        </div>
+      `).join('');
+    }
+
+    // Adiciona nota de evolução pelo Workspace
+    async function adicionarNotaEvolucaoWorkspace(e) {
+      e.preventDefault();
+      if (!workspaceSelectedPatientPhone) return;
+
+      const textField = document.getElementById('w-note-text-field');
+      const content = textField.value.trim();
+      if (!content) return;
+
+      try {
+        const res = await fetch(`/api/patients/${workspaceSelectedPatientPhone}/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content, author: 'Dr. Carlos Tonelli' }) // Autor automático Dr. Carlos
+        });
+
+        if (!res.ok) throw new Error('Erro ao salvar evolução');
+        
+        textField.value = '';
+        // Recarrega prontuário e anotações
+        const detailsRes = await fetch(`/api/patients/${workspaceSelectedPatientPhone}`);
+        if (detailsRes.ok) {
+          const data = await detailsRes.json();
+          renderWorkspaceNotesTimeline(data.notes);
+        }
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Carrega a Agenda do Workspace com horários lineares e detalhes
+    async function carregarAgendaWorkspace() {
+      const dateInput = document.getElementById('w-agenda-date');
+      const dateStr = dateInput.value;
+      if (!dateStr) return;
+
+      const startISO = `${dateStr}T00:00:00-03:00`;
+      const endISO = `${dateStr}T23:59:59-03:00`;
+
+      try {
+        const res = await fetch(`/api/appointments?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`);
+        if (!res.ok) throw new Error('Erro ao sincronizar consultas');
+        workspaceAgendaAppointments = await res.json();
+        
+        renderWorkspaceAgenda();
+      } catch (err) {
+        console.error('Erro ao carregar agenda:', err);
+      }
+    }
+
+    // Renderiza a agenda diária
+    function renderWorkspaceAgenda() {
+      const container = document.getElementById('w-agenda-slots-container');
+      container.innerHTML = '';
+
+      // Horário operacional do Dr. Carlos: 13:00 às 20:00
+      const startHour = 13;
+      const endHour = 20;
+
+      const slots = [];
+      let currentMinutes = startHour * 60;
+      const endMinutes = endHour * 60;
+
+      while (currentMinutes <= endMinutes) {
+        const hour = Math.floor(currentMinutes / 60);
+        const mins = currentMinutes % 60;
+        const timeStr = `${String(hour).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+        slots.push(timeStr);
+        currentMinutes += workspaceIntervalMinutes;
+      }
+
+      container.innerHTML = slots.map(timeStr => {
+        // Encontra consulta correspondente a este slot de horário
+        const app = workspaceAgendaAppointments.find(a => {
+          const appTime = new Date(a.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          return appTime === timeStr;
+        });
+
+        if (app) {
+          const ageText = app.age ? `${app.age} anos` : 'Idade não cadastrada';
+          const symptomText = app.complaint || app.description || 'Consulta agendada';
+
+          return `
+            <div onclick="selecionarPacienteWorkspace('${app.patient_phone}')" class="wagenda-slot-card">
+              <div class="wagenda-slot-time">${timeStr}</div>
+              <div class="wagenda-slot-info">
+                <div class="wagenda-slot-patient-name">${app.patient_name}</div>
+                <div class="wagenda-slot-patient-desc">${ageText} | Sintoma: ${symptomText}</div>
+              </div>
+            </div>
+          `;
+        }
+
+        // Slot vazio
+        return `
+          <div class="wagenda-slot-card" onclick="openQuickBooking('${timeStr}')">
+            <div class="wagenda-slot-time" style="color: var(--color-text-dim); font-weight: 500;">${timeStr}</div>
+            <div class="wagenda-slot-info">
+              <span class="wagenda-slot-empty">Vaga Livre (clique para agendar)</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Salva o intervalo de agendamento nas configurações da clínica
+    async function salvarIntervaloAgenda(value) {
+      workspaceIntervalMinutes = parseInt(value, 10);
+      try {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'appointment_interval', value })
+        });
+        renderWorkspaceAgenda(); // Regenera slots
+      } catch (err) {
+        console.error('Erro ao salvar intervalo:', err);
+      }
+    }
+
+    // Fila Virtual: Chamar paciente
+    async function chamarPacienteFila(id, phone) {
+      try {
+        const res = await fetch(`/api/virtual-queue/${id}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'in_consultation' })
+        });
+        if (res.ok) {
+          // Recarrega fila
+          await carregarFilaVirtual();
+          // Seleciona e abre prontuário do paciente
+          await selecionarPacienteWorkspace(phone);
+        }
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Fila Virtual: Finalizar consulta
+    async function finalizarPacienteFila(id) {
+      try {
+        const res = await fetch(`/api/virtual-queue/${id}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'completed' })
+        });
+        if (res.ok) {
+          carregarFilaVirtual();
+        }
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Fila Virtual: Remover da fila
+    async function removerPacienteFila(id) {
+      if (!confirm('Deseja realmente remover este paciente da fila virtual?')) return;
+      try {
+        const res = await fetch(`/api/virtual-queue/${id}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'remove' })
+        });
+        if (res.ok) {
+          carregarFilaVirtual();
+        }
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Busca rápida de pacientes na fila virtual (Dropdown)
+    function filtrarPacientesQueue() {
+      const q = document.getElementById('w-queue-search-input').value.toLowerCase().trim();
+      const dropdown = document.getElementById('w-queue-search-dropdown');
+      
+      if (!q) {
+        dropdown.style.display = 'none';
+        return;
+      }
+
+      // Filtra de todos os prontuários da clínica
+      const filtered = workspaceAllPatients.filter(p => p.name.toLowerCase().includes(q) || p.phone.includes(q));
+      
+      if (filtered.length === 0) {
+        dropdown.innerHTML = '<div style="padding: 10px; font-size: 11px; color: var(--color-text-dim);">Nenhum paciente encontrado.</div>';
+      } else {
+        dropdown.innerHTML = filtered.map(p => `
+          <div class="vqueue-search-item" onclick="adicionarPacienteFilaDireto('${p.phone}', '${p.name.replace(/'/g, "\\'")}')">
+            <strong>${p.name}</strong> (${p.phone})
+          </div>
+        `).join('');
+      }
+      dropdown.style.display = 'block';
+    }
+
+    function mostrarQueueSearchDropdown() {
+      // Carrega pacientes se estiver vazio
+      if (workspaceAllPatients.length === 0) {
+        carregarTodosPacientesWorkspace();
+      }
+      filtrarPacientesQueue();
+    }
+
+    function ocultarQueueSearchDropdown() {
+      document.getElementById('w-queue-search-dropdown').style.display = 'none';
+    }
+
+    // Adiciona o paciente selecionado na fila virtual física
+    async function adicionarPacienteFilaDireto(phone, name) {
+      // Limpa input
+      document.getElementById('w-queue-search-input').value = '';
+      ocultarQueueSearchDropdown();
+
+      try {
+        const res = await fetch('/api/virtual-queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, name })
+        });
+        
+        if (!res.ok) throw new Error('Erro ao adicionar paciente na fila.');
+        carregarFilaVirtual();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // Abre o modal de agendamento oficial a partir do clique de vaga livre
+    function openQuickBooking(timeStr) {
+      const dateStr = document.getElementById('w-agenda-date').value;
+      // Prepara campos do modal que já existe em dashboard.html
+      const datetimeLabel = `${dateStr.split('-').reverse().join('/')} às ${timeStr}`;
+      document.getElementById('booking-info-datetime').innerText = datetimeLabel;
+      document.getElementById('booking-info-quota').innerText = 'PARTICULAR';
+      
+      const timeISO = `${dateStr}T${timeStr}:00-03:00`;
+      document.getElementById('booking-info-time-iso').value = timeISO;
+      document.getElementById('booking-info-duration').value = workspaceIntervalMinutes;
+      
+      // Popula o select com a lista de pacientes do workspace
+      const select = document.getElementById('booking-patient-select');
+      select.innerHTML = '<option value="manual">-- Inserir Nome Manuscrito (Manual) --</option>' + 
+        workspaceAllPatients.map(p => `<option value="${p.phone}" data-name="${p.name}">${p.name} (+${p.phone})</option>`).join('');
+
+      document.getElementById('booking-name').value = '';
+      document.getElementById('booking-phone').value = '';
+
+      // Mostra modal
+      document.getElementById('booking-modal').style.display = 'flex';
     }
   </script>
 

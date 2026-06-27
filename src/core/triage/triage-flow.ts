@@ -103,8 +103,43 @@ export function getFirstName(fullName: any): string {
  */
 export function getNextUnfilledField(session: TriageSession, triageConfig: TriageConfig): TriageFieldConfig | null {
   const sortedFields = [...triageConfig.fields].sort((a, b) => a.order - b.order);
+  const isPrescriptionFlow = session.data && session.data['flow'] === 'prescription';
 
   for (const field of sortedFields) {
+    if (isPrescriptionFlow) {
+      // No fluxo de receita, os únicos campos coletados são name e medication.
+      // Os demais são auto-preenchidos e pulados para otimizar o atendimento.
+      if (field.key !== 'name' && field.key !== 'medication') {
+        if (!session.data[field.key]) {
+          if (field.key === 'isExistingPatient') session.data[field.key] = true;
+          else if (field.key === 'age') session.data[field.key] = 0;
+          else if (field.key === 'healthPlan') session.data[field.key] = 'Particular';
+          else if (field.key === 'cardNumber') session.data[field.key] = 'Não aplicável (Fluxo de Receita)';
+          else if (field.key === 'complaint') session.data[field.key] = 'Solicitação de Receita Controlada';
+          else if (field.key === 'agreedToTerms') session.data[field.key] = true;
+        }
+        continue;
+      }
+    }
+
+    const isExistingPatient = session.data && (session.data['isExistingPatient'] === true || String(session.data['isExistingPatient']).toLowerCase() === 'true');
+    if (isExistingPatient) {
+      // Se já é paciente antigo, pulamos idade (age) e carteirinha (cardNumber).
+      // A clínica já tem esses dados no prontuário físico/digital.
+      if (field.key === 'age') {
+        if (session.data[field.key] === undefined || session.data[field.key] === null) {
+          session.data[field.key] = 30; // Default de idade adulta para verificação de cotas da agenda
+        }
+        continue;
+      }
+      if (field.key === 'cardNumber') {
+        if (session.data[field.key] === undefined || session.data[field.key] === null) {
+          session.data[field.key] = 'Já cadastrado no prontuário (Paciente Antigo)';
+        }
+        continue;
+      }
+    }
+
     // Verifica se o campo tem condição de pulo
     if (field.skipCondition) {
       const { field: conditionField, value: conditionValue, autoFill } = field.skipCondition;

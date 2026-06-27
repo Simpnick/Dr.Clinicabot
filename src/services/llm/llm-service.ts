@@ -64,7 +64,7 @@ async function callLMStudio(history: ChatMessage[], systemInstruction: string, t
   try {
     console.log(`[LLM Service] Chamando LM Studio local (${config.LLM_MODEL_NAME}) em: ${url} (temp: ${temperature})`);
     const response = await axios.post(url, payload, {
-      timeout: 30000 // 30 segundos de timeout
+      timeout: 90000 // 90 segundos de timeout para acomodar modelos locais lentos
     });
 
     const reply = response.data?.choices?.[0]?.message?.content || '';

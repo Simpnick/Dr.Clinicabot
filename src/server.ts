@@ -15,6 +15,42 @@ import { routeTriageMessage } from './core/triage/triage-router';
 import { getDb } from './services/db/database';
 import { createAppointment, cancelAppointment, listEvents } from './services/google/calendar';
 
+// Buffer para capturar logs do console em tempo real no painel administrativo
+const MAX_LOG_LINES = 350;
+const serverLogs: string[] = [];
+
+function addServerLog(type: 'INFO' | 'ERROR' | 'WARN', message: string) {
+  const timestamp = new Date().toLocaleTimeString('pt-BR');
+  const logLine = `[${timestamp}] [${type}] ${message}`;
+  serverLogs.push(logLine);
+  if (serverLogs.length > MAX_LOG_LINES) {
+    serverLogs.shift();
+  }
+}
+
+// Guarda referências aos console.* originais
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.log = (...args: any[]) => {
+  originalLog(...args);
+  const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+  addServerLog('INFO', msg);
+};
+
+console.error = (...args: any[]) => {
+  originalError(...args);
+  const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+  addServerLog('ERROR', msg);
+};
+
+console.warn = (...args: any[]) => {
+  originalWarn(...args);
+  const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+  addServerLog('WARN', msg);
+};
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -59,8 +95,11 @@ const DOCTOR_PHONE = normalizeBrazilianPhone(config.DOCTOR_PHONE || '');
 const TRIAGE_SESSIONS_FILE = path.join(process.cwd(), 'triage_sessions.json');
 const CHAT_HISTORIES_FILE = path.join(process.cwd(), 'chat_histories.json');
 
-// médico atuando como paciente
+// médico atuando como paciente (ativo por padrão)
 const doctorAsPatientSet = new Set<string>();
+if (DOCTOR_PHONE) {
+  doctorAsPatientSet.add(DOCTOR_PHONE);
+}
 
 // Fila de processamento por telefone para evitar race conditions de mensagens concorrentes
 const webhookLocks = new Map<string, Promise<any>>();
@@ -130,6 +169,31 @@ async function initDatabase() {
         status TEXT DEFAULT 'pending',
         created_at TEXT NOT NULL
       );
+    `);
+
+    // Tabela de Fila Virtual
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS virtual_queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_phone TEXT NOT NULL,
+        patient_name TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'waiting',
+        arrival_time TEXT NOT NULL
+      );
+    `);
+
+    // Tabela de Configurações Gerais
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `);
+
+    // Insere o intervalo de agendamento padrão (15 minutos) se não existir
+    await db.run(`
+      INSERT OR IGNORE INTO settings (key, value)
+      VALUES ('appointment_interval', '15')
     `);
 
     console.log('[SQLite] Banco de dados inicializado com sucesso.');
@@ -422,21 +486,21 @@ app.post('/webhook/whatsapp', async (req, res) => {
     }
 
     // Processamento
-    const isDoctor = senderPhone === DOCTOR_PHONE && !doctorAsPatientSet.has(senderPhone);
+    const isDoctorPhone = senderPhone === DOCTOR_PHONE;
+    const isDoctorAdminMode = isDoctorPhone && !doctorAsPatientSet.has(senderPhone);
+    const trimmed = text.trim();
 
-    if (isDoctor) {
-      // Comandos administrativos via WhatsApp do médico
-      const trimmed = text.trim();
+    if (isDoctorPhone && (trimmed === '#modo_paciente' || trimmed === '#modo_medico')) {
       if (trimmed === '#modo_paciente') {
         doctorAsPatientSet.add(senderPhone);
         await sendWhatsAppMessage(senderPhone, 'Modo Paciente ativado. Suas mensagens agora passarão pela triagem de testes.');
       } else if (trimmed === '#modo_medico') {
         doctorAsPatientSet.delete(senderPhone);
         await sendWhatsAppMessage(senderPhone, 'Modo Médico ativado. Comandos administrativos liberados.');
-      } else {
-        // Como o foco inicial é triagem, respondemos que ele deve usar o painel ou WhatsApp normal
-        await sendWhatsAppMessage(senderPhone, 'Você está em modo administrativo. Envie #modo_paciente para testar a triagem.');
       }
+    } else if (isDoctorAdminMode) {
+      // Como o foco inicial é triagem, respondemos que ele deve usar o painel ou WhatsApp normal
+      await sendWhatsAppMessage(senderPhone, 'Você está em modo administrativo. Envie #modo_paciente para testar a triagem.');
     } else {
       // Fluxo padrão de triagem com debounce (aguarda 5 segundos sem mensagens para processar tudo junto)
       const list = accumulatedTexts.get(senderPhone) || [];
@@ -907,6 +971,30 @@ app.post('/api/clear-patient-data', async (req, res) => {
 });
 
 /**
+ * API: Remove um prontuário (paciente) específico do banco SQLite e suas evoluções
+ */
+app.post('/api/delete-patient-record', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ error: 'Telefone é obrigatório.' });
+
+    const cleanPhone = normalizeBrazilianPhone(phone);
+
+    // 1. Deleta da tabela patients
+    await db.run('DELETE FROM patients WHERE phone = ?', [cleanPhone]);
+
+    // 2. Deleta evoluções/notas associadas
+    await db.run('DELETE FROM patient_notes WHERE patient_phone = ?', [cleanPhone]);
+
+    console.log(`[Admin] Prontuário do paciente ${cleanPhone} removido do banco SQLite.`);
+    res.json({ success: true, message: `Prontuário e evoluções do paciente ${cleanPhone} removidos com sucesso do SQLite.` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * API: Ativa/desativa o controle humano da conversa
  */
 app.post('/api/triage/toggle-takeover', (req, res) => {
@@ -985,9 +1073,13 @@ app.get('/api/appointments', async (req, res) => {
       ]);
     }
 
-    // 3. Retorna os agendamentos salvos localmente
+    // 3. Retorna os agendamentos salvos localmente juntando com dados do prontuário
     const appointments = await db.all(
-      'SELECT * FROM appointments WHERE start_time >= ? AND start_time <= ? ORDER BY start_time ASC',
+      `SELECT a.*, p.age, p.complaint 
+       FROM appointments a 
+       LEFT JOIN patients p ON a.patient_phone = p.phone 
+       WHERE a.start_time >= ? AND a.start_time <= ? 
+       ORDER BY a.start_time ASC`,
       [timeMin, timeMax]
     );
     res.json(appointments);
@@ -996,7 +1088,11 @@ app.get('/api/appointments', async (req, res) => {
     try {
       // Fallback para cache local se API do Google falhar
       const appointments = await db!.all(
-        'SELECT * FROM appointments WHERE start_time >= ? AND start_time <= ? ORDER BY start_time ASC',
+        `SELECT a.*, p.age, p.complaint 
+         FROM appointments a 
+         LEFT JOIN patients p ON a.patient_phone = p.phone 
+         WHERE a.start_time >= ? AND a.start_time <= ? 
+         ORDER BY a.start_time ASC`,
         [req.query.start as string, req.query.end as string]
       );
       res.json(appointments);
@@ -1200,6 +1296,113 @@ app.post('/api/booking-requests/:id/reject', async (req, res) => {
 });
 
 /**
+ * API: Retorna a fila virtual de pacientes fisicamente na clínica
+ */
+app.get('/api/virtual-queue', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  try {
+    const queue = await db.all("SELECT * FROM virtual_queue ORDER BY id ASC");
+    res.json(queue);
+  } catch (err: any) {
+    console.error('[API Get Virtual Queue] Erro:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Adiciona um paciente à fila virtual
+ */
+app.post('/api/virtual-queue', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  const { phone, name } = req.body;
+  if (!phone || !name) {
+    return res.status(400).json({ error: 'Telefone e nome são obrigatórios.' });
+  }
+
+  try {
+    const cleanPhone = normalizeBrazilianPhone(phone);
+    const arrivalTime = new Date().toISOString();
+    
+    // Insere na fila
+    const result = await db.run(
+      "INSERT INTO virtual_queue (patient_phone, patient_name, status, arrival_time) VALUES (?, ?, 'waiting', ?)",
+      [cleanPhone, name, arrivalTime]
+    );
+
+    res.json({ success: true, id: result.lastID, message: 'Paciente adicionado à fila virtual.' });
+  } catch (err: any) {
+    console.error('[API Add Virtual Queue] Erro:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Atualiza status do paciente na fila virtual
+ */
+app.post('/api/virtual-queue/:id/status', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  const { id } = req.params;
+  const { status } = req.body; // 'waiting', 'in_consultation', 'completed', ou 'remove'
+
+  try {
+    if (status === 'remove') {
+      await db.run("DELETE FROM virtual_queue WHERE id = ?", [id]);
+      return res.json({ success: true, message: 'Paciente removido da fila virtual.' });
+    }
+
+    if (!['waiting', 'in_consultation', 'completed'].includes(status)) {
+      return res.status(400).json({ error: 'Status inválido.' });
+    }
+
+    await db.run("UPDATE virtual_queue SET status = ? WHERE id = ?", [status, id]);
+    res.json({ success: true, message: `Status da fila atualizado para ${status}.` });
+  } catch (err: any) {
+    console.error('[API Update Virtual Queue] Erro:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Retorna configurações gerais da clínica
+ */
+app.get('/api/settings', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  try {
+    const rows = await db.all("SELECT * FROM settings");
+    const settingsObj: Record<string, string> = {};
+    rows.forEach(r => {
+      settingsObj[r.key] = r.value;
+    });
+    res.json(settingsObj);
+  } catch (err: any) {
+    console.error('[API Get Settings] Erro:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * API: Salva ou atualiza uma configuração da clínica
+ */
+app.post('/api/settings', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Banco de dados não disponível' });
+  const { key, value } = req.body;
+  if (!key || value === undefined) {
+    return res.status(400).json({ error: 'Chave e valor são obrigatórios.' });
+  }
+
+  try {
+    await db.run(
+      "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+      [key, String(value)]
+    );
+    res.json({ success: true, message: `Configuração ${key} atualizada para ${value}.` });
+  } catch (err: any) {
+    console.error('[API Save Setting] Erro:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * API: Retorna resumo dos dados armazenados (para o painel de diagnóstico)
  */
 app.get('/api/data-summary', async (req, res) => {
@@ -1221,6 +1424,13 @@ app.get('/api/data-summary', async (req, res) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+/**
+ * API: Retorna os logs do console em tempo real capturados no servidor
+ */
+app.get('/api/server-logs', (req, res) => {
+  res.json({ logs: serverLogs });
 });
 
 // Autenticação Google OAuth2
